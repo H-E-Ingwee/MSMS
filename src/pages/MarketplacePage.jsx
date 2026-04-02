@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { mapPin, phone, checkCircle2 } from 'lucide-react';
+import { MapPin, Phone, CheckCircle2, PlusCircle } from 'lucide-react';
 import SectionHeading from '../components/atoms/SectionHeading';
 import { getMarketListings } from '../services/api';
-import { MapPin, Phone, CheckCircle2, PlusCircle } from 'lucide-react';
 
 export default function MarketplacePage() {
   const [listings, setListings] = useState([]);
