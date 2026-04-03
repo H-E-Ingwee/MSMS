@@ -6,7 +6,7 @@ import PrimaryButton from '../components/atoms/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: user?.name || '', phone: user?.phone || '', location: user?.location || '' });
 
@@ -15,9 +15,15 @@ export default function ProfilePage() {
     setEditing(false);
   };
 
+  if (loading) {
+    return <p className="p-4 text-gray-600">Loading profile…</p>;
+  }
+
   if (!user) {
     return <p className="p-4 text-gray-600">Please login to see profile.</p>;
   }
+
+  const joinedDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A';
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -58,7 +64,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-xs text-gray-500">Joined</p>
-              <p className="text-base font-semibold text-gray-900">{new Date(user.createdAt).toLocaleDateString()}</p>
+              <p className="text-base font-semibold text-gray-900">{joinedDate}</p>
             </div>
             <PrimaryButton className="bg-green-600 text-white col-span-full" onClick={() => setEditing(true)}>Edit Profile</PrimaryButton>
           </div>

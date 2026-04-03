@@ -1,16 +1,24 @@
 import React from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Leaf, TrendingUp, ShoppingCart, BookOpen, Wallet } from 'lucide-react';
+import { Leaf, TrendingUp, ShoppingCart, BookOpen, Wallet, User, Settings } from 'lucide-react';
 import DashboardPage from './pages/DashboardPage';
 import MarketplacePage from './pages/MarketplacePage';
 import TrainingPage from './pages/TrainingPage';
 import WalletPage from './pages/WalletPage';
+import ProfilePage from './pages/ProfilePage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from './context/AuthContext';
 
 const navItems = [
   { id: 'dashboard', label: 'Predictive', path: '/dashboard', icon: TrendingUp },
   { id: 'marketplace', label: 'Market', path: '/marketplace', icon: ShoppingCart },
   { id: 'training', label: 'Learn', path: '/training', icon: BookOpen },
   { id: 'wallet', label: 'M-Pesa', path: '/wallet', icon: Wallet },
+  { id: 'profile', label: 'Profile', path: '/profile', icon: User },
 ];
 
 function Sidebar() {
@@ -85,13 +93,4 @@ export default function AppRouter() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/marketplace" element={<MarketplacePage />} />
               <Route path="/training" element={<TrainingPage />} />
-              <Route path="/wallet" element={<WalletPage />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </div>
-        </div>
-        <MobileNav />
-      </main>
-    </div>
-  );
-}
+      
