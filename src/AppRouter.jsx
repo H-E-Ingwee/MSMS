@@ -23,6 +23,16 @@ const navItems = [
 
 function Sidebar() {
   const location = useLocation();
+  const { user } = useAuth();
+
+  const allNavItems = [
+    { id: 'dashboard', label: 'Predictive', path: '/dashboard', icon: TrendingUp },
+    { id: 'marketplace', label: 'Market', path: '/marketplace', icon: ShoppingCart },
+    { id: 'training', label: 'Learn', path: '/training', icon: BookOpen },
+    { id: 'wallet', label: 'M-Pesa', path: '/wallet', icon: Wallet },
+    { id: 'profile', label: 'Profile', path: '/profile', icon: User },
+    ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin', path: '/admin/dashboard', icon: Settings }] : []),
+  ];
 
   return (
     <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col shadow-sm z-10">
@@ -33,7 +43,7 @@ function Sidebar() {
         <span className="text-xl font-black text-gray-800 tracking-tight">MiraaLink<span className="text-green-600">.</span></span>
       </div>
       <nav className="flex-1 px-4 py-6 space-y-2">
-        {navItems.map(item => {
+        {allNavItems.map(item => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           return (
@@ -90,7 +100,21 @@ export default function AppRouter() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
           <div className="max-w-6xl mx-auto h-full">
             <Routes>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/marketplace" element={<MarketplacePage />} />
-              <Route path="/training" element={<TrainingPage />} />
-      
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+              <Route path="/marketplace" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
+              <Route path="/training" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
+              <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboardPage /></ProtectedRoute>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </div>
+        <MobileNav />
+      </main>
+    </div>
+  );
+}

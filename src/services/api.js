@@ -1,15 +1,44 @@
 import { predictiveData, marketListings, trainingModules, walletTransactions } from '../data/mockData';
 
-// This simulation will later be replaced by Axios/Fetch calls to backend endpoints
+// Backend integration: Replace with your actual API base URL
+const API_BASE_URL = 'https://api.miraalink.com'; // TODO: Update with real backend URL
+
+// Helper function for API calls
+const apiCall = async (endpoint, options = {}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`API call failed: ${endpoint}`, error);
+    throw error;
+  }
+};
+
+// Predictive data - keep mock for now
 export const getPredictiveData = async () => {
+  // TODO: Replace with real API call
+  // return await apiCall('/predictive');
   return new Promise(resolve => setTimeout(() => resolve(predictiveData), 250));
 };
 
 export const getTrainingModules = async () => {
+  // TODO: Replace with real API call
+  // return await apiCall('/training');
   return new Promise(resolve => setTimeout(() => resolve(trainingModules), 250));
 };
 
 export const getWalletData = async () => {
+  // TODO: Replace with real API call
+  // return await apiCall('/wallet');
   return new Promise(resolve => setTimeout(() => resolve({balance: 45200, transactions: walletTransactions}), 250));
 };
 
@@ -19,6 +48,8 @@ let listings = [...marketListings];
 let orders = [];
 
 export const getUserByPhone = async phone => {
+  // TODO: Replace with real API call
+  // return await apiCall(`/users/phone/${phone}`);
   return new Promise(resolve => {
     setTimeout(() => {
       const user = users.find(u => u.phone === phone);
@@ -28,6 +59,8 @@ export const getUserByPhone = async phone => {
 };
 
 export const saveUser = async ({ name, phone, role, location }) => {
+  // TODO: Replace with real API call
+  // return await apiCall('/users', { method: 'POST', body: JSON.stringify({ name, phone, role, location }) });
   return new Promise(resolve => {
     setTimeout(() => {
       let existing = users.find(u => u.phone === phone);
