@@ -17,17 +17,17 @@ export default function WalletPage() {
   return (
     <div className="max-w-md mx-auto space-y-6">
       <SectionHeading title="M-Pesa Wallet" subtitle="Secure escrow and payments." />
-      <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="absolute -right-10 -top-10 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
         <div className="relative z-10">
           <div className="flex justify-between items-center mb-6">
-            <span className="font-medium text-green-100 tracking-wider text-sm">MSMS WALLET</span>
+            <span className="font-medium text-emerald-100 tracking-wider text-sm">MSMS WALLET</span>
             <div className="font-bold italic text-lg tracking-tighter">M-PESA</div>
           </div>
-          <p className="text-green-100 text-sm mb-1">Available Balance</p>
+          <p className="text-emerald-100 text-sm mb-1">Available Balance</p>
           <h1 className="text-4xl font-bold mb-6 tracking-tight">KES {wallet.balance.toLocaleString()}</h1>
           <div className="flex gap-3">
-            <button className="flex-1 bg-white text-green-700 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">Withdraw</button>
+            <button className="flex-1 bg-white text-emerald-700 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">Withdraw</button>
             <button className="flex-1 border border-white text-white py-2.5 rounded-xl font-bold text-sm hover:bg-white/10 transition-colors">Deposit</button>
           </div>
         </div>
@@ -42,7 +42,7 @@ export default function WalletPage() {
             {wallet.transactions.map(tx => (
               <div key={tx.id} className="flex justify-between items-center p-4">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${tx.type === 'in' ? 'bg-green-100 text-green-600' : tx.type === 'out' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                  <div className={`p-2 rounded-full ${tx.type === 'in' ? 'bg-emerald-100 text-emerald-600' : tx.type === 'out' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
                     {tx.type === 'in' ? <TrendingUp size={16} /> : tx.type === 'out' ? <TrendingUp size={16} className="rotate-180" /> : <AlertCircle size={16} />}
                   </div>
                   <div>
@@ -50,7 +50,7 @@ export default function WalletPage() {
                     <p className="text-xs text-gray-500">{tx.date}</p>
                   </div>
                 </div>
-                <p className={`text-sm font-bold ${tx.type === 'in' ? 'text-green-600' : tx.type === 'out' ? 'text-gray-800' : 'text-orange-500'}`}>
+                <p className={`text-sm font-bold ${tx.type === 'in' ? 'text-emerald-600' : tx.type === 'out' ? 'text-gray-800' : 'text-orange-500'}`}>
                   {tx.type === 'in' ? '+' : tx.type === 'out' ? '-' : ''}KES {Math.abs(tx.amount).toLocaleString()}
                 </p>
               </div>

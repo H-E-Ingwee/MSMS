@@ -30,7 +30,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-green-50 to-white py-10 px-4">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-emerald-50 to-white py-10 px-4">
       <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-lg p-6">
         <SectionHeading title="Register" subtitle="Create an account to access the MiraaLink marketplace." />
 
@@ -41,7 +41,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-            <select value={role} onChange={e => setRole(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+            <select value={role} onChange={e => setRole(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
               <option value="farmer">Farmer</option>
               <option value="buyer">Buyer</option>
               <option value="admin">Administrator</option>
@@ -49,10 +49,10 @@ export default function RegisterPage() {
           </div>
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
-          <PrimaryButton type="submit" disabled={loading} className="w-full bg-green-600 text-white hover:bg-green-700">{loading ? 'Creating account...' : 'Register'} </PrimaryButton>
+          <PrimaryButton type="submit" disabled={loading} variant="default" className="w-full">{loading ? 'Creating account...' : 'Register'} </PrimaryButton>
         </form>
 
-        <p className="text-sm text-gray-500 mt-4">Already have an account? <Link to="/login" className="text-green-600 font-medium">Login here</Link>.</p>
+        <p className="text-sm text-gray-500 mt-4">Already have an account? <Link to="/login" className="text-emerald-600 font-medium">Login here</Link>.</p>
       </div>
     </div>
   );

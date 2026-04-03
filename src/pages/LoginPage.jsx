@@ -28,7 +28,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-green-50 to-white py-10 px-4">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-emerald-50 to-white py-10 px-4">
       <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-lg p-6">
         <SectionHeading title="Login" subtitle="Enter your phone and OTP (1234) to continue." />
 
@@ -36,10 +36,10 @@ export default function LoginPage() {
           <Input label="Phone Number" required value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g., +254712345678" />
           <Input label="OTP" required value={otp} onChange={e => setOtp(e.target.value)} placeholder="1234" />
           {error && <p className="text-red-600 text-sm">{error}</p>}
-          <PrimaryButton type="submit" disabled={isSubmitting} className="w-full bg-green-600 text-white hover:bg-green-700">{isSubmitting ? 'Logging in...' : 'Login'} </PrimaryButton>
+          <PrimaryButton type="submit" disabled={isSubmitting} variant="default" className="w-full">{isSubmitting ? 'Logging in...' : 'Login'} </PrimaryButton>
         </form>
 
-        <p className="text-sm text-gray-500 mt-4">New to MiraaLink? <Link to="/register" className="text-green-600 font-medium">Register here</Link>.</p>
+        <p className="text-sm text-gray-500 mt-4">New to MiraaLink? <Link to="/register" className="text-emerald-600 font-medium">Register here</Link>.</p>
       </div>
     </div>
   );
