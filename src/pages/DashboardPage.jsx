@@ -7,9 +7,9 @@ import DemandBarChart from '../components/molecules/DemandBarChart';
 import { getPredictiveData } from '../services/api';
 
 const KPI_ITEMS = [
-  {label: 'Current Avg Price', value: 'KES 480/kg', deltaText: '+5% from yesterday', accent: 'text-green-700'},
+  {label: 'Current Avg Price', value: 'KES 480/kg', deltaText: '+5% from yesterday', accent: 'text-emerald-700'},
   {label: 'Forecast (Weekend)', value: 'KES 600/kg', deltaText: 'High Demand Expected', accent: 'text-blue-700'},
-  {label: 'AI Recommendation', value: 'Hold harvest until Friday', icon: <Leaf className="text-green-600" size={24} />},
+  {label: 'AI Recommendation', value: 'Hold harvest until Friday', icon: <Leaf className="text-emerald-600" size={24} />},
 ];
 
 export default function DashboardPage() {

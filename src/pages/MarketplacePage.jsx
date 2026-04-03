@@ -22,7 +22,7 @@ export default function MarketplacePage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <SectionHeading title="Marketplace" subtitle="Direct buyer-seller matching." />
-        <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+        <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
           <PlusCircle size={18} /> List Produce
         </button>
       </div>
@@ -32,7 +32,7 @@ export default function MarketplacePage() {
             key={grade}
             onClick={() => setGradeFilter(grade)}
             className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap font-medium border ${
-              grade === gradeFilter ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              grade === gradeFilter ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
             }`}
           >
             {grade}
@@ -54,14 +54,14 @@ export default function MarketplacePage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-xl text-green-700">KES {item.price}</p>
+                  <p className="font-bold text-xl text-emerald-700">KES {item.price}</p>
                   <p className="text-xs text-gray-500">per kg</p>
                 </div>
               </div>
 
               <div className="py-3 border-y border-gray-50 my-3 flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
                     {item.farmer.charAt(0)}
                   </div>
                   <p className="text-sm font-medium text-gray-800 flex items-center gap-1">
@@ -72,7 +72,7 @@ export default function MarketplacePage() {
               </div>
 
               <div className="flex gap-2 mt-4">
-                <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl text-sm font-medium">Buy Now</button>
+                <button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-medium">Buy Now</button>
                 <button className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl"><Phone size={18} /></button>
               </div>
             </div>
