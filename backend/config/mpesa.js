@@ -33,23 +33,6 @@ export const MPESA_CONFIG = {
   // Use sandbox (true) or production (false)
   SANDBOX_MODE: process.env.NODE_ENV !== 'production',
 };
-  
-  // API Endpoints
-  SANDBOX_AUTH_URL: 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-  SANDBOX_STK_URL: 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
-  SANDBOX_QUERY_URL: 'https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query',
-  
-  PRODUCTION_AUTH_URL: 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-  PRODUCTION_STK_URL: 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
-  PRODUCTION_QUERY_URL: 'https://api.safaricom.co.ke/mpesa/stkpushquery/v1/query',
-  
-  // Transaction types
-  BUSINESS_SHORT_CODE: 'BusinessShortCode',
-  PAYMENT_TYPE: 'CustomerPayBillOnline',
-  
-  // Use sandbox (true) or production (false)
-  SANDBOX_MODE: process.env.NODE_ENV !== 'production',
-};
 
 // Get the appropriate URL based on environment
 export const getMpesaUrl = (endpoint) => {

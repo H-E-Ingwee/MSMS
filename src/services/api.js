@@ -186,3 +186,15 @@ export const checkPaymentStatus = async (transactionId) => {
 export const getMpesaConfig = async () => {
   return await apiCall('/payments/config');
 };
+
+// Buyer order history and reviews
+export const getBuyerOrders = async () => {
+  return await apiCall('/orders/buyer/history');
+};
+
+export const submitReview = async ({ orderId, rating, comment }) => {
+  return await apiCall(`/orders/${orderId}/review`, {
+    method: 'POST',
+    body: JSON.stringify({ rating, comment }),
+  });
+};
