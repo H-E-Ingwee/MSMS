@@ -66,20 +66,23 @@ async function main() {
     },
   });
 
-  // Create admin user
+  // --- UPDATED: Create Predefined Admin User ---
   const admin = await prisma.user.upsert({
-    where: { phone: '+254700000000' },
-    update: {},
+    where: { phone: '+254707897640' },
+    update: {
+      name: 'Joel Phineas',
+      location: 'Meru',
+    },
     create: {
-      phone: '+254700000000',
-      name: 'System Administrator',
+      phone: '+254707897640',
+      name: 'Joel Phineas',
       role: 'ADMIN',
-      location: 'Nairobi',
+      location: 'Meru',
       verified: true,
     },
   });
 
-  console.log('👤 Admin user created:', admin.phone);
+  console.log('👤 Admin user created/verified:', admin.name, '(', admin.phone, ')');
 
   // Create sample listings
   await prisma.listing.createMany({
