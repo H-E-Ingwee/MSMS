@@ -66,17 +66,31 @@ model Order {
 model TrainingModule {
   id          String   @id @default(cuid())
   title       String
-  type        ModuleType
-  content     String?  // For articles
-  videoUrl    String?  // For videos
-  duration    String   // e.g., "5 mins"
-  category    String   // e.g., "Sustainable Farming"
-  order       Int      @default(0)
+  description String
+  category    TrainingCategory
+  content     String   // Full content for the module
+  duration    Int      // Duration in minutes
+  difficulty  Difficulty @default(BEGINNER)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Relations
+  completions TrainingCompletion[]
+
   @@map("training_modules")
+}
+
+model TrainingCompletion {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleId  String
+  module    TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([userId, moduleId])
+  @@map("training_completions")
 }
 
 model WalletTransaction {
@@ -134,10 +148,8 @@ enum ModuleType {
 }
 
 enum TransactionType {
-  DEPOSIT
-  WITHDRAWAL
-  PAYMENT
-  REFUND
+  CREDIT
+  DEBIT
 }
 
 enum TransactionStatus {
@@ -145,4 +157,18 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+enum TrainingCategory {
+  FARMING_TECHNIQUES
+  MARKET_INSIGHTS
+  QUALITY_CONTROL
+  SUSTAINABILITY
+  BUSINESS_MANAGEMENT
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
 }
