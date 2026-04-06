@@ -10,15 +10,18 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const initAuth = async () => {
       const stored = localStorage.getItem('msms_auth');
-      if (stored) {
+      const token = localStorage.getItem('msms_token');
+
+      if (stored && token) {
         try {
-          setUser(JSON.parse(stored));
           const refreshed = await getCurrentUser();
           setUser(refreshed.user || refreshed);
           localStorage.setItem('msms_auth', JSON.stringify(refreshed.user || refreshed));
         } catch (err) {
-          console.warn('Unable to refresh auth session', err);
-          apiLogout();
+          console.warn('Unable to refresh auth session, clearing stored data:', err);
+          // Clear invalid tokens and user data
+          localStorage.removeItem('msms_auth');
+          localStorage.removeItem('msms_token');
           setUser(null);
         }
       }
