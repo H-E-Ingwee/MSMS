@@ -54,7 +54,7 @@ export default function LoginPage() {
       
       // Route based on role
       if (loggedInUser.role === 'ADMIN') {
-        navigate('/admin');
+        navigate('/admin/dashboard');
       } else {
         navigate('/dashboard');
       }

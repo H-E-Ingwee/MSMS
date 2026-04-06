@@ -35,12 +35,29 @@ app.use(helmet()); // Security headers
 app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
-      'http://localhost:5173',
-      'https://miraalink.vercel.app'
+      'http://localhost:5173', // Local development
+      'https://miraalink.vercel.app', // Production frontend
+      'https://msms-frontend.vercel.app', // Alternative production URL
+      /^https:\/\/.*\.vercel\.app$/, // Any Vercel app
     ];
-    if (!origin || allowedOrigins.includes(origin)) {
+
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Check if origin matches any allowed pattern
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return allowedOrigin === origin;
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return false;
+    });
+
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
