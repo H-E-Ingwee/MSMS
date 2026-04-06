@@ -25,6 +25,7 @@ model User {
   orders         Order[]
   walletTransactions WalletTransaction[]
   trainingCompletions TrainingCompletion[]
+  notifications  Notification[]
 
   @@map("users")
 }
@@ -56,10 +57,14 @@ model Order {
   buyer       User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   quantity    Int
   totalPrice  Float
-  status      String   @default("PENDING")
+  status      String   @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, PENDING_PAYMENT, PAID, SHIPPED, DELIVERED, CANCELLED
   deliveryAddress String?
+  farmerNotes String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Relations
+  notifications Notification[]
 
   @@map("orders")
 }
@@ -120,5 +125,20 @@ model Prediction {
 
   @@unique([date, grade])
   @@map("predictions")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // ORDER_RECEIVED, ORDER_APPROVED, ORDER_REJECTED, PAYMENT_RECEIVED, etc.
+  title     String
+  message   String
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
 }
 
