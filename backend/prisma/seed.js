@@ -68,16 +68,16 @@ async function main() {
 
   // --- UPDATED: Create Predefined Admin User ---
   const admin = await prisma.user.upsert({
-    where: { phone: '+254707897640' },
+    where: { phone: '+254798936316' },
     update: {
-      name: 'Joel Phineas',
-      location: 'Meru',
+      name: 'Admin User',
+      location: 'Nairobi',
     },
     create: {
-      phone: '+254707897640',
-      name: 'Joel Phineas',
+      phone: '+254798936316',
+      name: 'Admin User',
       role: 'ADMIN',
-      location: 'Meru',
+      location: 'Nairobi',
       verified: true,
     },
   });
