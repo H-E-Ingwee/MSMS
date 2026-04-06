@@ -526,4 +526,331 @@ router.get('/users/:id', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Download audit report as CSV
+router.get('/reports/audit', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    // Get recent activities (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const activities = await prisma.auditLog.findMany({
+      where: {
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Generate CSV content
+    const csvHeader = 'ID,User,Role,Action,Details,Timestamp\n';
+    const csvRows = activities.map(activity =>
+      `${activity.id},${activity.user?.name || 'System'},${activity.user?.role || 'SYSTEM'},"${activity.action}","${activity.details || ''}",${activity.createdAt.toISOString()}`
+    ).join('\n');
+
+    const csvContent = csvHeader + csvRows;
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="audit_report.csv"');
+    res.send(csvContent);
+  } catch (error) {
+    console.error('Error generating audit report:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to generate audit report',
+    });
+  }
+});
+
+// Get all listings for admin management
+router.get('/listings', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+    const status = req.query.status || 'ALL';
+
+    const where = {
+      ...(status !== 'ALL' && { status }),
+    };
+
+    const [listings, totalCount] = await Promise.all([
+      prisma.listing.findMany({
+        where,
+        include: {
+          farmer: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              verified: true,
+              location: true,
+            },
+          },
+          _count: {
+            select: {
+              orders: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+      prisma.listing.count({ where }),
+    ]);
+
+    res.json({
+      listings,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching listings:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch listings',
+    });
+  }
+});
+
+// Update listing status (approve/reject)
+router.put('/listings/:id/status', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+
+    if (!['ACTIVE', 'REJECTED', 'SUSPENDED'].includes(status)) {
+      return res.status(400).json({
+        error: 'Invalid Status',
+        message: 'Status must be ACTIVE, REJECTED, or SUSPENDED',
+      });
+    }
+
+    const updatedListing = await prisma.listing.update({
+      where: { id },
+      data: {
+        status,
+        ...(notes && { notes }),
+      },
+      include: {
+        farmer: {
+          select: {
+            name: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user.id,
+        action: `LISTING_${status}`,
+        details: `Listing ${id} status changed to ${status}${notes ? ` - Notes: ${notes}` : ''}`,
+      },
+    });
+
+    res.json({
+      message: `Listing ${status.toLowerCase()} successfully`,
+      listing: updatedListing,
+    });
+  } catch (error) {
+    console.error('Error updating listing status:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to update listing status',
+    });
+  }
+});
+
+// Update listing details
+router.put('/listings/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { grade, quantity, price, location, description } = req.body;
+
+    const updatedListing = await prisma.listing.update({
+      where: { id },
+      data: {
+        ...(grade && { grade }),
+        ...(quantity && { quantity: parseFloat(quantity) }),
+        ...(price && { price: parseFloat(price) }),
+        ...(location && { location }),
+        ...(description !== undefined && { description }),
+      },
+      include: {
+        farmer: {
+          select: {
+            name: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user.id,
+        action: 'LISTING_UPDATED',
+        details: `Listing ${id} details updated`,
+      },
+    });
+
+    res.json({
+      message: 'Listing updated successfully',
+      listing: updatedListing,
+    });
+  } catch (error) {
+    console.error('Error updating listing:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to update listing',
+    });
+  }
+});
+
+// Get all training modules for admin management
+router.get('/training', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const modules = await prisma.trainingModule.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ modules });
+  } catch (error) {
+    console.error('Error fetching training modules:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch training modules',
+    });
+  }
+});
+
+// Create new training module
+router.post('/training', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { title, category, content, description, duration } = req.body;
+
+    const module = await prisma.trainingModule.create({
+      data: {
+        title,
+        category,
+        content,
+        description,
+        duration: parseInt(duration),
+      },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user.id,
+        action: 'TRAINING_MODULE_CREATED',
+        details: `Training module "${title}" created`,
+      },
+    });
+
+    res.status(201).json({
+      message: 'Training module created successfully',
+      module,
+    });
+  } catch (error) {
+    console.error('Error creating training module:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to create training module',
+    });
+  }
+});
+
+// Update training module
+router.put('/training/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, category, content, description, duration } = req.body;
+
+    const updatedModule = await prisma.trainingModule.update({
+      where: { id },
+      data: {
+        ...(title && { title }),
+        ...(category && { category }),
+        ...(content && { content }),
+        ...(description !== undefined && { description }),
+        ...(duration && { duration: parseInt(duration) }),
+      },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user.id,
+        action: 'TRAINING_MODULE_UPDATED',
+        details: `Training module "${title}" updated`,
+      },
+    });
+
+    res.json({
+      message: 'Training module updated successfully',
+      module: updatedModule,
+    });
+  } catch (error) {
+    console.error('Error updating training module:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to update training module',
+    });
+  }
+});
+
+// Delete training module
+router.delete('/training/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const module = await prisma.trainingModule.findUnique({
+      where: { id },
+      select: { title: true },
+    });
+
+    await prisma.trainingModule.delete({
+      where: { id },
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user.id,
+        action: 'TRAINING_MODULE_DELETED',
+        details: `Training module "${module.title}" deleted`,
+      },
+    });
+
+    res.json({
+      message: 'Training module deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting training module:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to delete training module',
+    });
+  }
+});
+
 export default router;

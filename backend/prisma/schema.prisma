@@ -28,6 +28,7 @@ model User {
   notifications  Notification[]
   buyerReviews   Review[] @relation("ReviewBuyer")
   farmerReviews  Review[] @relation("ReviewFarmer")
+  auditLogs      AuditLog[]
 
   @@map("users")
 }
@@ -159,5 +160,16 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String   // USER_VERIFIED, LISTING_APPROVED, ORDER_CREATED, etc.
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
 }
 
