@@ -133,7 +133,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new order (authenticated users only)
 router.post('/', [
   authenticateToken,
-  body('listingId').isString().notEmpty(),
+  body('listingId').isString().notEmpty().withMessage('Listing ID is required'),
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
   body('deliveryAddress').optional().isString().trim(),
 ], async (req, res) => {
