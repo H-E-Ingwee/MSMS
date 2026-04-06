@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { MapPin, Phone, CheckCircle2, PlusCircle, ShoppingCart, MessageCircle, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import SectionHeading from '../components/atoms/SectionHeading';
 import PrimaryButton from '../components/atoms/PrimaryButton';
 import { getMarketListings, createOrder, processMpesaPayment } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function MarketplacePage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [listings, setListings] = useState([]);
   const [gradeFilter, setGradeFilter] = useState('All Grades');
   const [loading, setLoading] = useState(true);
@@ -92,9 +96,14 @@ export default function MarketplacePage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <SectionHeading title="Marketplace" subtitle="Direct buyer-seller matching." />
-        <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-          <PlusCircle size={18} /> List Produce
-        </button>
+        {user?.role === 'FARMER' && (
+          <button
+            onClick={() => navigate('/marketplace/list')}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2"
+          >
+            <PlusCircle size={18} /> List Produce
+          </button>
+        )}
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">

@@ -5,13 +5,25 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Create sample users
+  // Clear existing data for a fresh start
+  console.log('🧹 Clearing existing data...');
+  await prisma.notification.deleteMany();
+  await prisma.walletTransaction.deleteMany();
+  await prisma.review.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.listing.deleteMany();
+  await prisma.trainingCompletion.deleteMany();
+  await prisma.user.deleteMany();
+
+  console.log('✅ Database cleared');
+
+  // Create sample users with realistic data
   const farmer1 = await prisma.user.upsert({
     where: { phone: '+254712345678' },
     update: {},
     create: {
       phone: '+254712345678',
-      name: 'Joel M.',
+      name: 'David Kimathi',
       role: 'FARMER',
       location: 'Meru Central',
       verified: true,
@@ -23,7 +35,7 @@ async function main() {
     update: {},
     create: {
       phone: '+254723456789',
-      name: 'Sarah N.',
+      name: 'Grace Wanjiku',
       role: 'FARMER',
       location: 'Embu',
       verified: true,
@@ -35,7 +47,7 @@ async function main() {
     update: {},
     create: {
       phone: '+254734567890',
-      name: 'Peter K.',
+      name: 'Peter Njoroge',
       role: 'FARMER',
       location: 'Igembe South',
       verified: false,
@@ -47,7 +59,7 @@ async function main() {
     update: {},
     create: {
       phone: '+254745678901',
-      name: 'David W.',
+      name: 'Mary Muthoni',
       role: 'FARMER',
       location: 'Meru North',
       verified: true,
@@ -59,10 +71,34 @@ async function main() {
     update: {},
     create: {
       phone: '+254756789012',
-      name: 'John B.',
+      name: 'John Kamau',
       role: 'BUYER',
       location: 'Nairobi',
       verified: true,
+    },
+  });
+
+  const buyer2 = await prisma.user.upsert({
+    where: { phone: '+254767890123' },
+    update: {},
+    create: {
+      phone: '+254767890123',
+      name: 'Sarah Achieng',
+      role: 'BUYER',
+      location: 'Nakuru',
+      verified: true,
+    },
+  });
+
+  const buyer3 = await prisma.user.upsert({
+    where: { phone: '+254778901234' },
+    update: {},
+    create: {
+      phone: '+254778901234',
+      name: 'Michael Oduya',
+      role: 'BUYER',
+      location: 'Kisumu',
+      verified: false,
     },
   });
 
@@ -84,7 +120,7 @@ async function main() {
 
   console.log('👤 Admin user created/verified:', admin.name, '(', admin.phone, ')');
 
-  // Create sample listings
+  // Create sample listings with realistic data
   await prisma.listing.createMany({
     data: [
       {
@@ -93,7 +129,7 @@ async function main() {
         price: 600,
         location: 'Meru Central',
         farmerId: farmer1.id,
-        description: 'Premium Kangeta grade, freshly harvested',
+        description: 'Premium Kangeta grade miraa, freshly harvested from fertile Meru highlands. Known for its quality and longevity.',
       },
       {
         grade: 'Alele',
@@ -101,7 +137,7 @@ async function main() {
         price: 350,
         location: 'Embu',
         farmerId: farmer2.id,
-        description: 'High quality Alele from fertile lands',
+        description: 'High-quality Alele miraa from Embu region. Grown using traditional farming methods for authentic flavor.',
       },
       {
         grade: 'Giza',
@@ -109,7 +145,7 @@ async function main() {
         price: 850,
         location: 'Igembe South',
         farmerId: farmer3.id,
-        description: 'Rare Giza variety, limited quantity',
+        description: 'Rare Giza variety miraa, limited quantity available. Known for its unique characteristics and premium pricing.',
       },
       {
         grade: 'Lomboko',
@@ -117,30 +153,58 @@ async function main() {
         price: 450,
         location: 'Meru North',
         farmerId: farmer4.id,
-        description: 'Traditional Lomboko grade',
+        description: 'Traditional Lomboko grade from Meru North. Consistent quality and reliable supply.',
+      },
+      {
+        grade: 'Kangeta',
+        quantity: 75,
+        price: 580,
+        location: 'Meru Central',
+        farmerId: farmer1.id,
+        description: 'Fresh Kangeta miraa ready for immediate delivery. Competitive pricing for bulk orders.',
+      },
+      {
+        grade: 'Alele',
+        quantity: 90,
+        price: 420,
+        location: 'Embu',
+        farmerId: farmer2.id,
+        description: 'Premium Alele grade from established Embu farms. Excellent for both local and export markets.',
       },
     ],
   });
 
-  // Create sample predictions
-  const today = new Date();
-  const predictions = [];
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
+  // Get the created listings for reference
+  const listings = await prisma.listing.findMany();
 
-    predictions.push({
-      date,
-      grade: 'Kangeta',
-      actualPrice: i < 4 ? 450 + Math.random() * 50 : null,
-      predictedPrice: 500 + Math.random() * 100,
-      demandVolume: 1000 + Math.random() * 1000,
-      confidence: 0.8 + Math.random() * 0.2,
-    });
-  }
-
-  await prisma.prediction.createMany({
-    data: predictions,
+  // Create sample orders
+  await prisma.order.createMany({
+    data: [
+      {
+        listingId: listings[0].id,
+        buyerId: buyer1.id,
+        quantity: 25,
+        totalPrice: 25 * listings[0].price,
+        status: 'APPROVED',
+        deliveryAddress: 'Westlands, Nairobi',
+      },
+      {
+        listingId: listings[1].id,
+        buyerId: buyer2.id,
+        quantity: 50,
+        totalPrice: 50 * listings[1].price,
+        status: 'PAID',
+        deliveryAddress: 'CBD, Nakuru',
+      },
+      {
+        listingId: listings[3].id,
+        buyerId: buyer3.id,
+        quantity: 30,
+        totalPrice: 30 * listings[3].price,
+        status: 'PENDING_APPROVAL',
+        deliveryAddress: 'Kisumu Central',
+      },
+    ],
   });
 
   // Create sample training modules

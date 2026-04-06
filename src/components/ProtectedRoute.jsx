@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-export default function ProtectedRoute({ children, adminOnly = false }) {
+export default function ProtectedRoute({ children, adminOnly = false, farmerOnly = false }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -14,6 +14,10 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
   }
 
   if (adminOnly && user.role !== 'ADMIN') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (farmerOnly && user.role !== 'FARMER') {
     return <Navigate to="/dashboard" replace />;
   }
 
