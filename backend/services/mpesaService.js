@@ -120,14 +120,6 @@ export const processMpesaCallback = (callbackData) => {
     throw error;
   }
 };
-      resultDescription: response.data.ResultDesc,
-      data: response.data,
-    };
-  } catch (error) {
-    console.error('STK Query error:', error.response?.data || error.message);
-    throw new Error('Failed to query payment status');
-  }
-};
 
 // Validate phone number format
 export const validatePhoneNumber = (phone) => {
