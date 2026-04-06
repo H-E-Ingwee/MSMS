@@ -130,10 +130,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create new order (buyers only)
+// Create new order (authenticated users only)
 router.post('/', [
   authenticateToken,
-  requireRole('BUYER'),
   body('listingId').isString().notEmpty(),
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
   body('deliveryAddress').optional().trim().isLength({ min: 5, max: 200 }),
@@ -444,7 +443,7 @@ router.put('/:id/status', [
 });
 
 // Get buyer order history with reviews
-router.get('/buyer/history', authenticateToken, requireRole('BUYER'), async (req, res) => {
+router.get('/buyer/history', authenticateToken, async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       where: { buyerId: req.user.id },
@@ -478,7 +477,6 @@ router.get('/buyer/history', authenticateToken, requireRole('BUYER'), async (req
 // Submit review for delivered order
 router.post('/:id/review', [
   authenticateToken,
-  requireRole('BUYER'),
   body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
   body('comment').trim().isLength({ min: 10, max: 500 }).withMessage('Comment must be 10-500 characters'),
 ], async (req, res) => {
