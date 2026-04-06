@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import SectionHeading from '../components/atoms/SectionHeading';
-import PrimaryButton from '../components/atoms/PrimaryButton';
-import Input from '../components/atoms/Input';
-import { useAuth } from '../context/AuthContext';
-import { requestOtp } from '../services/api';
+import { Leaf, Lock } from 'lucide-react';
+import SectionHeading from '../components/atoms/SectionHeading.jsx';
+import PrimaryButton from '../components/atoms/PrimaryButton.jsx';
+import Input from '../components/atoms/Input.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { requestOtp } from '../services/api.js';
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -24,26 +26,40 @@ export default function LoginPage() {
     setError('');
     setMessage('');
     setIsRequestingOtp(true);
+    
     try {
+      // Assuming requestOtp is a mock or handles the API call
       await requestOtp(phone);
       setMessage('OTP sent successfully. Check the backend console or your phone.');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to request OTP');
     } finally {
       setIsRequestingOtp(false);
     }
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!phone || !otp) {
+      setError('Please provide both phone number and OTP.');
+      return;
+    }
+    
     setError('');
     setMessage('');
     setIsSubmitting(true);
+    
     try {
-      await login({ phone, otp });
-      navigate('/dashboard');
+      const loggedInUser = await login(phone, otp);
+      
+      // Route based on role
+      if (loggedInUser.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -51,30 +67,72 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-emerald-50 to-white py-10 px-4">
-      <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-lg p-6">
-        <SectionHeading title="Login" subtitle="Enter your phone and OTP to continue. Request OTP first if needed." />
-
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <Input label="Phone Number" required value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g., +254712345678" />
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
-              <Input label="OTP" required value={otp} onChange={e => setOtp(e.target.value)} placeholder="1234" />
-            </div>
-            <button
-              type="button"
-              onClick={handleRequestOtp}
-              disabled={isRequestingOtp}
-              className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
-            >
-              {isRequestingOtp ? 'Sending...' : 'Send OTP'}
-            </button>
+      <div className="w-full max-w-md bg-white border border-gray-200 rounded-3xl shadow-xl p-8">
+        <div className="flex justify-center mb-6">
+          <div className="bg-emerald-600 p-3 rounded-2xl shadow-lg">
+            <Leaf size={32} className="text-white" />
           </div>
-          {message && <p className="text-emerald-600 text-sm">{message}</p>}
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <PrimaryButton type="submit" disabled={isSubmitting} variant="default" className="w-full">{isSubmitting ? 'Logging in...' : 'Login'} </PrimaryButton>
+        </div>
+        
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-black text-gray-900">Welcome Back</h1>
+          <p className="text-sm text-gray-500 mt-1">Login to MSMS to continue.</p>
+        </div>
+
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
+            <div className="relative">
+              <span className="absolute left-4 top-3.5 text-gray-400 font-medium">+254</span>
+              <input 
+                type="tel" 
+                value={phone} 
+                onChange={e => setPhone(e.target.value)} 
+                placeholder="707897640" 
+                className="w-full pl-14 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">OTP / Password</label>
+            <div className="relative flex gap-2">
+              <div className="relative flex-1">
+                <Lock className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                <input 
+                  type="password" 
+                  value={otp} 
+                  onChange={e => setOtp(e.target.value)} 
+                  placeholder="1234" 
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleRequestOtp}
+                disabled={isRequestingOtp}
+                className="px-5 py-3 rounded-xl bg-emerald-100 text-emerald-700 font-bold hover:bg-emerald-200 transition-colors whitespace-nowrap"
+              >
+                {isRequestingOtp ? '...' : 'Get OTP'}
+              </button>
+            </div>
+          </div>
+
+          {message && <p className="text-emerald-600 text-sm font-medium text-center">{message}</p>}
+          {error && <p className="text-red-600 text-sm font-medium text-center">{error}</p>}
+          
+          <button 
+            type="submit" 
+            disabled={isSubmitting} 
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all active:scale-95"
+          >
+            {isSubmitting ? 'Authenticating...' : 'Secure Login'}
+          </button>
         </form>
 
-        <p className="text-sm text-gray-500 mt-4">New to MiraaLink? <Link to="/register" className="text-emerald-600 font-medium">Register here</Link>.</p>
+        <p className="text-center text-sm text-gray-500 mt-6 font-medium">
+          New to MSMS? <Link to="/register" className="text-emerald-600 hover:underline font-bold">Register here</Link>
+        </p>
       </div>
     </div>
   );
