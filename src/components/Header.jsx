@@ -1,6 +1,7 @@
 import React from 'react';
-import { Menu, Search, Bell, Globe, LogOut } from 'lucide-react';
+import { Menu, Search, Globe, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 export default function Header({ onMenuClick }) {
   const { logout } = useAuth();
@@ -41,10 +42,7 @@ export default function Header({ onMenuClick }) {
           </div>
 
           {/* Notifications */}
-          <button className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-gray-100 transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400">
-            <Bell size={20} className="text-gray-700" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          <NotificationBell />
 
           {/* Language/Region */}
           <button className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl hover:bg-gray-100 transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400">

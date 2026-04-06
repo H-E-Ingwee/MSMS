@@ -140,3 +140,49 @@ export const logout = () => {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USER_KEY);
 };
+
+// Notification API functions
+export const getNotifications = async () => {
+  const response = await apiCall('/notifications');
+  return response.notifications || response;
+};
+
+export const getUnreadCount = async () => {
+  return await apiCall('/notifications/unread-count');
+};
+
+export const markNotificationAsRead = async (notificationId) => {
+  return await apiCall(`/notifications/${notificationId}/read`, {
+    method: 'PUT',
+  });
+};
+
+export const markAllNotificationsRead = async () => {
+  return await apiCall('/notifications/read-all', {
+    method: 'PUT',
+  });
+};
+
+// Order API functions
+export const approveOrder = async (orderId, farmerNotes = '') => {
+  return await apiCall(`/orders/${orderId}/approve`, {
+    method: 'PUT',
+    body: JSON.stringify({ approved: true, farmerNotes }),
+  });
+};
+
+export const rejectOrder = async (orderId, reason = '') => {
+  return await apiCall(`/orders/${orderId}/approve`, {
+    method: 'PUT',
+    body: JSON.stringify({ approved: false, farmerNotes: reason }),
+  });
+};
+
+// Payment functions
+export const checkPaymentStatus = async (transactionId) => {
+  return await apiCall(`/payments/status/${transactionId}`);
+};
+
+export const getMpesaConfig = async () => {
+  return await apiCall('/payments/config');
+};
