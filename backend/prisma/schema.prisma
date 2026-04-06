@@ -1,0 +1,148 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  name      String
+  role      Role     @default(FARMER)
+  location  String?
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  listings        Listing[]
+  orders         Order[]
+  walletTransactions WalletTransaction[]
+
+  @@map("users")
+}
+
+model Listing {
+  id          String   @id @default(cuid())
+  grade       String   // e.g., "Kangeta", "Alele", "Giza"
+  quantity    Int      // in kg
+  price       Float    // price per kg in KES
+  description String?
+  location    String
+  farmerId    String
+  farmer      User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  status      ListingStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  orders Order[]
+
+  @@map("listings")
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerId     String
+  buyer       User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  quantity    Int
+  totalPrice  Float
+  status      OrderStatus @default(PENDING)
+  deliveryAddress String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("orders")
+}
+
+model TrainingModule {
+  id          String   @id @default(cuid())
+  title       String
+  type        ModuleType
+  content     String?  // For articles
+  videoUrl    String?  // For videos
+  duration    String   // e.g., "5 mins"
+  category    String   // e.g., "Sustainable Farming"
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("training_modules")
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  amount      Float
+  description String
+  reference   String?  // M-Pesa transaction ID
+  status      TransactionStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+
+  @@map("wallet_transactions")
+}
+
+model Prediction {
+  id          String   @id @default(cuid())
+  date        DateTime
+  grade       String
+  actualPrice Float?
+  predictedPrice Float
+  demandVolume Int
+  confidence  Float?  // AI confidence score 0-1
+  createdAt   DateTime @default(now())
+
+  @@unique([date, grade])
+  @@map("predictions")
+}
+
+enum Role {
+  FARMER
+  BUYER
+  ADMIN
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PAID
+  DELIVERED
+  CANCELLED
+}
+
+enum ModuleType {
+  VIDEO
+  ARTICLE
+  AUDIO
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  PAYMENT
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
