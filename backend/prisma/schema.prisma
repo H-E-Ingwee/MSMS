@@ -38,7 +38,7 @@ model Listing {
   location    String
   farmerId    String
   farmer      User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
-  status      ListingStatus @default(ACTIVE)
+  status      String   @default("ACTIVE")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -56,7 +56,7 @@ model Order {
   buyer       User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   quantity    Int
   totalPrice  Float
-  status      OrderStatus @default(PENDING)
+  status      String   @default("PENDING")
   deliveryAddress String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -68,10 +68,10 @@ model TrainingModule {
   id          String   @id @default(cuid())
   title       String
   description String
-  category    TrainingCategory
+  category    String   @default("FARMING_TECHNIQUES")
   content     String   // Full content for the module
   duration    Int      // Duration in minutes
-  difficulty  Difficulty @default(BEGINNER)
+  difficulty  String   @default("BEGINNER")
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -98,11 +98,11 @@ model WalletTransaction {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        TransactionType
+  type        String   // "CREDIT" or "DEBIT"
   amount      Float
   description String
   reference   String?  // M-Pesa transaction ID
-  status      TransactionStatus @default(PENDING)
+  status      String   @default("PENDING")
   createdAt   DateTime @default(now())
 
   @@map("wallet_transactions")
@@ -122,54 +122,3 @@ model Prediction {
   @@map("predictions")
 }
 
-enum Role {
-  FARMER
-  BUYER
-  ADMIN
-}
-
-enum ListingStatus {
-  ACTIVE
-  SOLD
-  CANCELLED
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PAID
-  DELIVERED
-  CANCELLED
-}
-
-enum ModuleType {
-  VIDEO
-  ARTICLE
-  AUDIO
-}
-
-enum TransactionType {
-  CREDIT
-  DEBIT
-}
-
-enum TransactionStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-enum TrainingCategory {
-  FARMING_TECHNIQUES
-  MARKET_INSIGHTS
-  QUALITY_CONTROL
-  SUSTAINABILITY
-  BUSINESS_MANAGEMENT
-}
-
-enum Difficulty {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
-}
