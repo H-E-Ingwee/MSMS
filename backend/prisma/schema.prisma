@@ -14,7 +14,7 @@ model User {
   id        String   @id @default(cuid())
   phone     String   @unique
   name      String
-  role      Role     @default(FARMER)
+  role      String   @default("FARMER")
   location  String?
   verified  Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -24,6 +24,7 @@ model User {
   listings        Listing[]
   orders         Order[]
   walletTransactions WalletTransaction[]
+  trainingCompletions TrainingCompletion[]
 
   @@map("users")
 }
