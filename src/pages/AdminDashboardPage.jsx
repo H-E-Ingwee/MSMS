@@ -836,7 +836,165 @@ export default function AdminDashboardPage() {
         )}
       </div>
 
-        {/* Activity Log */}
+      {/* Listings Management */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
+            <ShoppingCart size={20} className="text-orange-500" />
+            Marketplace Listings Management
+          </h3>
+          <div className="flex gap-2">
+            <select
+              value={listingsStatusFilter}
+              onChange={(e) => setListingsStatusFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            >
+              <option value="ALL">All Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead>
+              <tr className="border-b-2 border-gray-100 text-gray-400 uppercase tracking-wider text-xs">
+                <th className="pb-4 font-bold">Grade</th>
+                <th className="pb-4 font-bold">Farmer</th>
+                <th className="pb-4 font-bold">Quantity</th>
+                <th className="pb-4 font-bold">Price</th>
+                <th className="pb-4 font-bold">Location</th>
+                <th className="pb-4 font-bold">Status</th>
+                <th className="pb-4 font-bold">Orders</th>
+                <th className="pb-4 font-bold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {listings.map((listing) => (
+                <tr key={listing.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-4 font-bold text-gray-800">{listing.grade}</td>
+                  <td className="py-4">
+                    <div>
+                      <p className="font-medium text-gray-800">{listing.farmer.name}</p>
+                      <p className="text-xs text-gray-500">{listing.farmer.phone}</p>
+                    </div>
+                  </td>
+                  <td className="py-4">{listing.quantity}kg</td>
+                  <td className="py-4 font-medium">KES {listing.price.toLocaleString()}</td>
+                  <td className="py-4 text-gray-600">{listing.location}</td>
+                  <td className="py-4">
+                    <span className={`px-3 py-1.5 rounded-lg text-xs font-black ${
+                      listing.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' :
+                      listing.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                      'bg-orange-100 text-orange-700'
+                    }`}>
+                      {listing.status}
+                    </span>
+                  </td>
+                  <td className="py-4 text-gray-600">{listing._count.orders}</td>
+                  <td className="py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setEditingListing(listing)}
+                        className="p-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg"
+                        title="Edit Listing"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      {listing.status === 'ACTIVE' ? (
+                        <button
+                          onClick={() => handleListingStatusChange(listing.id, 'SUSPENDED', 'Suspended by admin')}
+                          className="p-1.5 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg"
+                          title="Suspend"
+                        >
+                          <Ban size={14} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleListingStatusChange(listing.id, 'ACTIVE')}
+                          className="p-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg"
+                          title="Approve"
+                        >
+                          <CheckCircle size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {listings.length === 0 && (
+                <tr>
+                  <td colSpan="8" className="py-8 text-center text-gray-500">
+                    No listings found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Training Materials Management */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
+            <Leaf size={20} className="text-emerald-500" />
+            Training Materials Management
+          </h3>
+          <button
+            onClick={() => setShowModuleModal(true)}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-700 transition-colors"
+          >
+            Add New Module
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {trainingModules.map((module) => (
+            <div key={module.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-bold text-gray-800 text-sm leading-tight">{module.title}</h4>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  module.difficulty === 'BEGINNER' ? 'bg-green-100 text-green-700' :
+                  module.difficulty === 'INTERMEDIATE' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  {module.difficulty}
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 mb-3 line-clamp-2">{module.description}</p>
+              <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
+                <span>{module.category.replace('_', ' ')}</span>
+                <span>{module.duration} min</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditingModule(module)}
+                  className="flex-1 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-medium"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteTrainingModule(module.id)}
+                  className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+          {trainingModules.length === 0 && (
+            <div className="col-span-full text-center py-8">
+              <Leaf size={48} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500">No training modules found</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Activity Log */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col">
           <h3 className="font-black text-gray-800 text-lg mb-6">Live Activity Log</h3>
           <div className="space-y-5 flex-1">
@@ -860,7 +1018,7 @@ export default function AdminDashboardPage() {
               )
             })}
           </div>
-          <button className="w-full mt-6 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 rounded-xl font-bold text-sm transition-colors">
+          <button className="w-full mt-6 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 rounded-xl font-bold text-sm transition-colors" onClick={() => handleDownloadAdminReport('audit')}>
             Download Audit Report
           </button>
         </div>
