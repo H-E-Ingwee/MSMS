@@ -1,22 +1,93 @@
 import React, { useEffect, useState } from 'react';
-import { MapPin, Phone, CheckCircle2, PlusCircle } from 'lucide-react';
+import { MapPin, Phone, CheckCircle2, PlusCircle, ShoppingCart, MessageCircle, X } from 'lucide-react';
 import SectionHeading from '../components/atoms/SectionHeading';
-import { getMarketListings } from '../services/api';
+import PrimaryButton from '../components/atoms/PrimaryButton';
+import { getMarketListings, createOrder, processMpesaPayment } from '../services/api';
 
 export default function MarketplacePage() {
   const [listings, setListings] = useState([]);
   const [gradeFilter, setGradeFilter] = useState('All Grades');
   const [loading, setLoading] = useState(true);
+  const [selectedListing, setSelectedListing] = useState(null);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [purchaseQuantity, setPurchaseQuantity] = useState(1);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [processingPurchase, setProcessingPurchase] = useState(false);
 
   useEffect(() => {
-    getMarketListings().then(data => {
-      setListings(data);
-      setLoading(false);
-    });
+    loadListings();
   }, []);
+
+  const loadListings = async () => {
+    try {
+      const data = await getMarketListings();
+      setListings(data);
+    } catch (error) {
+      console.error('Failed to load listings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const grades = ['All Grades', 'Kangeta', 'Alele', 'Giza', 'Lomboko'];
   const filtered = gradeFilter === 'All Grades' ? listings : listings.filter(item => item.grade === gradeFilter);
+
+  const handleBuyNow = (listing) => {
+    setSelectedListing(listing);
+    setPurchaseQuantity(1);
+    setDeliveryAddress('');
+    setShowPurchaseModal(true);
+  };
+
+  const handleContactSeller = (listing) => {
+    // For now, we'll use WhatsApp if available, otherwise direct call
+    const phoneNumber = listing.farmerPhone || '0712345678'; // Fallback phone
+    const message = `Hi ${listing.farmer}, I'm interested in your ${listing.grade} Miraa listing (${listing.qty}) at KES ${listing.price}/kg. Can we discuss the purchase?`;
+
+    // Try WhatsApp first
+    const whatsappUrl = `https://wa.me/254${phoneNumber.substring(1)}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+
+    // Fallback to phone call after a delay
+    setTimeout(() => {
+      window.location.href = `tel:+254${phoneNumber.substring(1)}`;
+    }, 2000);
+  };
+
+  const handlePurchase = async () => {
+    if (!selectedListing) return;
+
+    setProcessingPurchase(true);
+    try {
+      // Create the order
+      const order = await createOrder({
+        listingId: selectedListing.id,
+        quantity: purchaseQuantity,
+        deliveryAddress: deliveryAddress.trim() || null,
+      });
+
+      // Process M-Pesa payment
+      const paymentResult = await processMpesaPayment({
+        amount: order.totalPrice,
+        phoneNumber: '254712345678', // This should come from user profile
+        orderId: order.id,
+      });
+
+      alert(`Order created successfully! Total: KES ${order.totalPrice}. Check your phone for M-Pesa payment prompt.`);
+
+      setShowPurchaseModal(false);
+      setSelectedListing(null);
+      loadListings(); // Refresh listings
+
+    } catch (error) {
+      console.error('Purchase failed:', error);
+      alert('Purchase failed. Please try again.');
+    } finally {
+      setProcessingPurchase(false);
+    }
+  };
+
+  const maxQuantity = selectedListing ? parseInt(selectedListing.qty) : 1;
 
   return (
     <div className="space-y-6">
@@ -26,6 +97,7 @@ export default function MarketplacePage() {
           <PlusCircle size={18} /> List Produce
         </button>
       </div>
+
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {grades.map(grade => (
           <button
@@ -41,7 +113,10 @@ export default function MarketplacePage() {
       </div>
 
       {loading ? (
-        <div>Loading Marketplace...</div>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading marketplace...</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(item => (
@@ -72,11 +147,100 @@ export default function MarketplacePage() {
               </div>
 
               <div className="flex gap-2 mt-4">
-                <button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-medium">Buy Now</button>
-                <button className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl"><Phone size={18} /></button>
+                <button
+                  onClick={() => handleBuyNow(item)}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart size={16} /> Buy Now
+                </button>
+                <button
+                  onClick={() => handleContactSeller(item)}
+                  className="p-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl"
+                  title="Contact Seller"
+                >
+                  <MessageCircle size={18} />
+                </button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Purchase Modal */}
+      {showPurchaseModal && selectedListing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Purchase Miraa</h3>
+              <button
+                onClick={() => setShowPurchaseModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">{selectedListing.grade}</span>
+                  <span className="font-bold text-emerald-700">KES {selectedListing.price}/kg</span>
+                </div>
+                <p className="text-sm text-gray-600">Available: {selectedListing.qty} kg</p>
+                <p className="text-sm text-gray-600">Seller: {selectedListing.farmer}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Quantity (kg)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={maxQuantity}
+                  value={purchaseQuantity}
+                  onChange={(e) => setPurchaseQuantity(Math.min(maxQuantity, Math.max(1, parseInt(e.target.value) || 1)))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Delivery Address (Optional)
+                </label>
+                <textarea
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="Enter delivery address..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  rows="3"
+                />
+              </div>
+
+              <div className="bg-emerald-50 p-4 rounded-xl">
+                <div className="flex justify-between items-center text-lg font-bold">
+                  <span>Total:</span>
+                  <span className="text-emerald-700">KES {(purchaseQuantity * selectedListing.price).toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPurchaseModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <PrimaryButton
+                  onClick={handlePurchase}
+                  disabled={processingPurchase}
+                  className="flex-1"
+                >
+                  {processingPurchase ? 'Processing...' : 'Pay with M-Pesa'}
+                </PrimaryButton>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

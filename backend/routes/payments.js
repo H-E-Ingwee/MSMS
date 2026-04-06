@@ -130,8 +130,181 @@ router.post('/mpesa/callback', express.raw({ type: 'application/json' }), async 
   }
 });
 
-// Check payment status
-router.get('/status/:transactionId', authenticateToken, async (req, res) => {
+// Process payment for order
+router.post('/order/:orderId', [
+  authenticateToken,
+  body('paymentMethod').isIn(['MPESA', 'CASH']).withMessage('Payment method must be MPESA or CASH'),
+  body('phoneNumber').optional().matches(/^254[0-9]{9}$/).withMessage('Phone number must be in format 254XXXXXXXXX'),
+  body('amount').optional().isFloat({ min: 1 }).withMessage('Amount must be greater than 0'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Invalid input data',
+        details: errors.array(),
+      });
+    }
+
+    const { orderId } = req.params;
+    const { paymentMethod, phoneNumber, amount } = req.body;
+
+    // Find the order
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        listing: {
+          include: {
+            farmer: true,
+          },
+        },
+        buyer: true,
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Order not found',
+      });
+    }
+
+    // Check if user is the buyer
+    if (order.buyerId !== req.user.id) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'You can only pay for your own orders',
+      });
+    }
+
+    // Check if order is still pending
+    if (order.status !== 'PENDING') {
+      return res.status(400).json({
+        error: 'Invalid Order Status',
+        message: 'Order has already been processed',
+      });
+    }
+
+    const paymentAmount = amount || order.totalPrice;
+
+    if (paymentMethod === 'MPESA') {
+      if (!phoneNumber) {
+        return res.status(400).json({
+          error: 'Phone Number Required',
+          message: 'Phone number is required for M-Pesa payments',
+        });
+      }
+
+      // Generate transaction reference
+      const transactionRef = `MSMS${Date.now()}${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+      // Create wallet transaction
+      const transaction = await prisma.walletTransaction.create({
+        data: {
+          userId: req.user.id,
+          amount: paymentAmount,
+          type: 'DEBIT', // Debit from buyer
+          description: `Payment for Order ${orderId} - ${order.listing.grade}`,
+          status: 'PENDING',
+          reference: transactionRef,
+        },
+      });
+
+      // Simulate M-Pesa STK Push (in production, call actual M-Pesa API)
+      setTimeout(async () => {
+        // Simulate successful payment
+        await prisma.walletTransaction.update({
+          where: { id: transaction.id },
+          data: { status: 'COMPLETED' },
+        });
+
+        // Update order status
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { status: 'PAID' },
+        });
+
+        // Credit farmer's wallet
+        await prisma.walletTransaction.create({
+          data: {
+            userId: order.listing.farmerId,
+            amount: paymentAmount,
+            type: 'CREDIT',
+            description: `Sale of ${order.quantity}kg ${order.listing.grade} to ${order.buyer.name}`,
+            status: 'COMPLETED',
+            reference: `ORDER_${orderId}`,
+          },
+        });
+
+        // Update listing quantity
+        const newQuantity = order.listing.quantity - order.quantity;
+        await prisma.listing.update({
+          where: { id: order.listingId },
+          data: {
+            quantity: newQuantity,
+            status: newQuantity <= 0 ? 'SOLD_OUT' : 'ACTIVE',
+          },
+        });
+
+      }, 5000); // 5 second delay to simulate M-Pesa processing
+
+      return res.status(200).json({
+        message: 'M-Pesa payment initiated',
+        transaction: {
+          id: transaction.id,
+          reference: transactionRef,
+          amount: paymentAmount,
+          status: 'PENDING',
+        },
+        orderId,
+        instructions: 'Please check your phone and enter your M-Pesa PIN to complete the payment',
+      });
+
+    } else if (paymentMethod === 'CASH') {
+      // For cash payments, mark as paid immediately
+      await prisma.order.update({
+        where: { id: orderId },
+        data: { status: 'PAID' },
+      });
+
+      // Credit farmer's wallet
+      await prisma.walletTransaction.create({
+        data: {
+          userId: order.listing.farmerId,
+          amount: paymentAmount,
+          type: 'CREDIT',
+          description: `Cash sale of ${order.quantity}kg ${order.listing.grade} to ${order.buyer.name}`,
+          status: 'COMPLETED',
+          reference: `ORDER_${orderId}`,
+        },
+      });
+
+      // Update listing quantity
+      const newQuantity = order.listing.quantity - order.quantity;
+      await prisma.listing.update({
+        where: { id: order.listingId },
+        data: {
+          quantity: newQuantity,
+          status: newQuantity <= 0 ? 'SOLD_OUT' : 'ACTIVE',
+        },
+      });
+
+      return res.status(200).json({
+        message: 'Cash payment recorded successfully',
+        orderId,
+        amount: paymentAmount,
+      });
+    }
+
+  } catch (error) {
+    console.error('Order payment error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to process payment',
+    });
+  }
+});
   try {
     const { transactionId } = req.params;
 

@@ -65,6 +65,7 @@ router.get('/', async (req, res) => {
       qty: `${listing.quantity}kg`,
       price: listing.price,
       farmer: listing.farmer.name,
+      farmerPhone: listing.farmer.phone,
       location: listing.location,
       verified: listing.farmer.verified,
       date: new Date(listing.createdAt).toLocaleDateString('en-US', {

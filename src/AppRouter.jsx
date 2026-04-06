@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Leaf, TrendingUp, ShoppingCart, BookOpen, Wallet, User, Settings, X } from 'lucide-react';
+import { Leaf, TrendingUp, ShoppingCart, BookOpen, Wallet, User, Settings, X, Package } from 'lucide-react';
 import DashboardPage from './pages/DashboardPage';
 import MarketplacePage from './pages/MarketplacePage';
+import OrdersPage from './pages/OrdersPage';
 import TrainingPage from './pages/TrainingPage';
 import WalletPage from './pages/WalletPage';
 import ProfilePage from './pages/ProfilePage';
@@ -17,6 +18,7 @@ import { useAuth } from './context/AuthContext';
 const navItems = [
   { id: 'dashboard', label: 'Predictive', path: '/dashboard', icon: TrendingUp },
   { id: 'marketplace', label: 'Market', path: '/marketplace', icon: ShoppingCart },
+  { id: 'orders', label: 'Orders', path: '/orders', icon: Package },
   { id: 'training', label: 'Learn', path: '/training', icon: BookOpen },
   { id: 'wallet', label: 'M-Pesa', path: '/wallet', icon: Wallet },
   { id: 'profile', label: 'Profile', path: '/profile', icon: User },
@@ -29,6 +31,7 @@ function DesktopSidebar() {
   const allNavItems = [
     { id: 'dashboard', label: 'Predictive', path: '/dashboard', icon: TrendingUp },
     { id: 'marketplace', label: 'Market', path: '/marketplace', icon: ShoppingCart },
+    { id: 'orders', label: 'Orders', path: '/orders', icon: Package },
     { id: 'training', label: 'Learn', path: '/training', icon: BookOpen },
     { id: 'wallet', label: 'M-Pesa', path: '/wallet', icon: Wallet },
     { id: 'profile', label: 'Profile', path: '/profile', icon: User },
@@ -77,6 +80,7 @@ function MobileSidebar({ isOpen, onClose }) {
   const allNavItems = [
     { id: 'dashboard', label: 'Predictive', path: '/dashboard', icon: TrendingUp },
     { id: 'marketplace', label: 'Market', path: '/marketplace', icon: ShoppingCart },
+    { id: 'orders', label: 'Orders', path: '/orders', icon: Package },
     { id: 'training', label: 'Learn', path: '/training', icon: BookOpen },
     { id: 'wallet', label: 'M-Pesa', path: '/wallet', icon: Wallet },
     { id: 'profile', label: 'Profile', path: '/profile', icon: User },
@@ -195,6 +199,7 @@ export default function AppRouter() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                 <Route path="/marketplace" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
+                <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
                 <Route path="/training" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
                 <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
