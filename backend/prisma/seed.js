@@ -66,6 +66,21 @@ async function main() {
     },
   });
 
+  // Create admin user
+  const admin = await prisma.user.upsert({
+    where: { phone: '+254700000000' },
+    update: {},
+    create: {
+      phone: '+254700000000',
+      name: 'System Administrator',
+      role: 'ADMIN',
+      location: 'Nairobi',
+      verified: true,
+    },
+  });
+
+  console.log('👤 Admin user created:', admin.phone);
+
   // Create sample listings
   await prisma.listing.createMany({
     data: [

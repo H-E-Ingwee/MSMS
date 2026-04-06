@@ -14,6 +14,7 @@ import ordersRoutes from './routes/orders.js';
 import trainingRoutes from './routes/training.js';
 import walletRoutes from './routes/wallet.js';
 import paymentsRoutes from './routes/payments.js';
+import adminRoutes from './routes/admin.js';
 
 // Load environment variables
 dotenv.config();
@@ -61,6 +62,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/predictive', predictiveRoutes);
 app.use('/api/listings', listingsRoutes);
 app.use('/api/orders', ordersRoutes);

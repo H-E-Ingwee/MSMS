@@ -4,9 +4,16 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { body, validationResult } from 'express-validator';
 import { authenticateToken } from '../middleware/auth.js';
+import africastalking from 'africastalking';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Initialize Africa's Talking
+const africasTalking = africastalking({
+  apiKey: process.env.AFRICASTALKING_API_KEY,
+  username: process.env.AFRICASTALKING_USERNAME,
+});
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -17,9 +24,29 @@ const generateToken = (userId) => {
   );
 };
 
-// Generate OTP (simplified - in production use a proper SMS service)
+// Generate OTP (6-digit)
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Send SMS OTP
+const sendSMSOTP = async (phone, otp) => {
+  try {
+    const sms = africasTalking.SMS;
+    const message = `Your MiraaLink verification code is: ${otp}. Valid for 5 minutes.`;
+    
+    const result = await sms.send({
+      to: phone,
+      message: message,
+      from: process.env.AFRICASTALKING_SENDER_ID || 'MiraaLink'
+    });
+    
+    console.log('📱 SMS sent successfully:', result);
+    return true;
+  } catch (error) {
+    console.error('❌ SMS sending failed:', error);
+    throw new Error('Failed to send SMS');
+  }
 };
 
 // Store OTP temporarily (in production use Redis or database)
@@ -83,8 +110,13 @@ router.post('/register', [
       userId: user.id,
     });
 
-    // In production, send OTP via SMS
-    console.log(`📱 OTP for ${phone}: ${otp}`);
+    // Send OTP via SMS
+    try {
+      await sendSMSOTP(phone, otp);
+    } catch (smsError) {
+      console.error('SMS sending failed, but user created:', smsError);
+      // Don't fail registration if SMS fails, but log it
+    }
 
     // Generate token for immediate login (in production, require OTP verification first)
     const token = generateToken(user.id);
@@ -93,7 +125,7 @@ router.post('/register', [
       message: 'User registered successfully',
       user,
       token,
-      otpSent: true, // In development mode
+      otpSent: true,
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -223,12 +255,12 @@ router.post('/request-otp', [
       userId: user.id,
     });
 
-    // In production, send OTP via SMS
-    console.log(`📱 OTP for ${phone}: ${otp}`);
+    // Send OTP via SMS
+    await sendSMSOTP(phone, otp);
 
     res.json({
       message: 'OTP sent successfully',
-      otpSent: true, // In development mode
+      otpSent: true,
     });
   } catch (error) {
     console.error('Request OTP error:', error);
