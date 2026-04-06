@@ -80,7 +80,21 @@ NODE_ENV="development"
 
 # Frontend URL (for CORS)
 FRONTEND_URL="http://localhost:5173"
+
+# Africa's Talking SMS Configuration (for real OTP)
+# Sign up at https://account.africastalking.com/
+# Get your username and API key from the dashboard
+AFRICASTALKING_USERNAME="your-africastalking-username"
+AFRICASTALKING_API_KEY="your-africastalking-api-key"
+AFRICASTALKING_SENDER_ID="MiraaLink"
 ```
+
+**Africa's Talking Setup:**
+1. Sign up for an account at [Africa's Talking](https://account.africastalking.com/)
+2. Go to your dashboard and get your Username and API Key
+3. Add credit to your account (required for sending SMS)
+4. Set the `AFRICASTALKING_SENDER_ID` to "MiraaLink" or your preferred sender name
+5. For production deployment on Vercel, add these as environment variables in your Vercel dashboard
 
 **Security Note:** Never commit the `.env` file to version control. Add it to `.gitignore`.
 
@@ -238,6 +252,16 @@ Authorization: Bearer <jwt-token>
 | POST | `/mpesa/callback` | M-Pesa payment callback |
 | GET | `/status/:transactionId` | Check payment status |
 | POST | `/order/:orderId` | Process order payment |
+
+### Admin (`/api/admin`) - Admin Only
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/users` | Get all users with pagination |
+| GET | `/stats` | Get system statistics |
+| GET | `/reports/users` | Download users CSV report |
+| GET | `/reports/transactions` | Download transactions CSV report |
+| GET | `/reports/listings` | Download listings CSV report |
 
 ## 🧪 Testing the API
 

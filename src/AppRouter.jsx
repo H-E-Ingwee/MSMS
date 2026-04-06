@@ -32,7 +32,7 @@ function DesktopSidebar() {
     { id: 'training', label: 'Learn', path: '/training', icon: BookOpen },
     { id: 'wallet', label: 'M-Pesa', path: '/wallet', icon: Wallet },
     { id: 'profile', label: 'Profile', path: '/profile', icon: User },
-    ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin', path: '/admin/dashboard', icon: Settings }] : []),
+    ...(user?.role === 'ADMIN' ? [{ id: 'admin', label: 'Admin', path: '/admin/dashboard', icon: Settings }] : []),
   ];
 
   return (
@@ -80,7 +80,7 @@ function MobileSidebar({ isOpen, onClose }) {
     { id: 'training', label: 'Learn', path: '/training', icon: BookOpen },
     { id: 'wallet', label: 'M-Pesa', path: '/wallet', icon: Wallet },
     { id: 'profile', label: 'Profile', path: '/profile', icon: User },
-    ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin', path: '/admin/dashboard', icon: Settings }] : []),
+    ...(user?.role === 'ADMIN' ? [{ id: 'admin', label: 'Admin', path: '/admin/dashboard', icon: Settings }] : []),
   ];
 
   return (
