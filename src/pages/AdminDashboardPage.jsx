@@ -23,6 +23,17 @@ export default function AdminDashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Listings management state
+  const [listings, setListings] = useState([]);
+  const [listingsPage, setListingsPage] = useState(1);
+  const [listingsStatusFilter, setListingsStatusFilter] = useState('ALL');
+  const [editingListing, setEditingListing] = useState(null);
+
+  // Training modules state
+  const [trainingModules, setTrainingModules] = useState([]);
+  const [editingModule, setEditingModule] = useState(null);
+  const [showModuleModal, setShowModuleModal] = useState(false);
+
   useEffect(() => {
     loadAdminData();
   }, [currentPage, roleFilter, statusFilter]);
@@ -88,6 +99,167 @@ export default function AdminDashboardPage() {
       alert('Error downloading report');
     }
   };
+
+  const loadListings = async () => {
+    try {
+      const params = new URLSearchParams({
+        page: listingsPage,
+        limit: 20,
+        ...(listingsStatusFilter !== 'ALL' && { status: listingsStatusFilter }),
+      });
+
+      const response = await fetch(`http://localhost:3001/api/admin/listings?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to load listings');
+
+      const data = await response.json();
+      setListings(data.listings || []);
+    } catch (error) {
+      console.error('Error loading listings:', error);
+      setListings([]);
+    }
+  };
+
+  const loadTrainingModules = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/admin/training', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to load training modules');
+
+      const data = await response.json();
+      setTrainingModules(data.modules || []);
+    } catch (error) {
+      console.error('Error loading training modules:', error);
+      setTrainingModules([]);
+    }
+  };
+
+  const handleListingStatusChange = async (listingId, status, notes = '') => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/listings/${listingId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify({ status, notes }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update listing status');
+
+      const result = await response.json();
+      alert(result.message);
+      loadListings();
+    } catch (error) {
+      console.error('Error updating listing status:', error);
+      alert('Failed to update listing status');
+    }
+  };
+
+  const handleUpdateListing = async (listingId, updates) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/listings/${listingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) throw new Error('Failed to update listing');
+
+      const result = await response.json();
+      alert(result.message);
+      setEditingListing(null);
+      loadListings();
+    } catch (error) {
+      console.error('Error updating listing:', error);
+      alert('Failed to update listing');
+    }
+  };
+
+  const handleCreateTrainingModule = async (moduleData) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/admin/training', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify(moduleData),
+      });
+
+      if (!response.ok) throw new Error('Failed to create training module');
+
+      const result = await response.json();
+      alert(result.message);
+      setShowModuleModal(false);
+      loadTrainingModules();
+    } catch (error) {
+      console.error('Error creating training module:', error);
+      alert('Failed to create training module');
+    }
+  };
+
+  const handleUpdateTrainingModule = async (moduleId, updates) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/training/${moduleId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) throw new Error('Failed to update training module');
+
+      const result = await response.json();
+      alert(result.message);
+      setEditingModule(null);
+      loadTrainingModules();
+    } catch (error) {
+      console.error('Error updating training module:', error);
+      alert('Failed to update training module');
+    }
+  };
+
+  const handleDeleteTrainingModule = async (moduleId) => {
+    if (!confirm('Are you sure you want to delete this training module?')) return;
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/training/${moduleId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to delete training module');
+
+      const result = await response.json();
+      alert(result.message);
+      loadTrainingModules();
+    } catch (error) {
+      console.error('Error deleting training module:', error);
+      alert('Failed to delete training module');
+    }
+  };
+
+  useEffect(() => {
+    loadAdminData();
+    loadListings();
+    loadTrainingModules();
+  }, [currentPage, roleFilter, statusFilter, listingsPage, listingsStatusFilter]);
 
   const handleOrderApproval = async (orderId, approved, notes = '') => {
     try {

@@ -291,6 +291,348 @@ async function main() {
     ],
   });
 
+  // Create sample training modules
+  await prisma.trainingModule.createMany({
+    data: [
+      {
+        title: 'Introduction to Miraa Farming',
+        description: 'Learn the basics of miraa cultivation, from seed selection to harvesting techniques.',
+        category: 'FARMING_TECHNIQUES',
+        content: `# Introduction to Miraa Farming
+
+## Overview
+Miraa (khat) farming is a traditional agricultural practice in Kenya, particularly in the Meru and Embu regions. This module covers the fundamental principles of successful miraa cultivation.
+
+## Key Topics Covered:
+1. **Seed Selection and Germination**
+   - Choosing quality miraa seeds
+   - Optimal germination conditions
+   - Nursery management techniques
+
+2. **Soil Preparation**
+   - Soil testing and amendment
+   - pH requirements for miraa (6.0-7.0)
+   - Drainage and irrigation systems
+
+3. **Planting and Early Growth**
+   - Transplanting seedlings
+   - Spacing requirements (2x2 meters)
+   - Weed control methods
+
+4. **Pest and Disease Management**
+   - Common pests: aphids, mites, caterpillars
+   - Organic pest control methods
+   - Disease prevention strategies
+
+## Best Practices
+- Regular pruning for bushy growth
+- Consistent watering schedule
+- Soil fertility maintenance
+- Harvest timing optimization
+
+## Expected Outcomes
+By the end of this module, farmers will be able to:
+- Establish a new miraa plantation
+- Implement proper care routines
+- Identify and treat common problems
+- Maximize yield and quality`,
+        duration: 45,
+        difficulty: 'BEGINNER',
+      },
+      {
+        title: 'Advanced Pruning Techniques',
+        description: 'Master the art of miraa pruning for maximum yield and quality improvement.',
+        category: 'FARMING_TECHNIQUES',
+        content: `# Advanced Pruning Techniques for Miraa
+
+## Why Pruning Matters
+Proper pruning is essential for:
+- Increased branching and yield
+- Improved shoot quality
+- Disease prevention
+- Plant longevity
+
+## Pruning Methods
+
+### 1. Initial Training Prune
+- Performed on young plants (6-12 months)
+- Remove apical dominance
+- Encourage lateral branching
+
+### 2. Maintenance Pruning
+- Regular removal of old shoots
+- Selective harvesting techniques
+- Seasonal pruning schedules
+
+### 3. Rejuvenation Pruning
+- For older, unproductive plants
+- Severe cutting back to stimulate new growth
+- Risk management approach
+
+## Tools and Safety
+- Sharp pruning shears
+- Protective gloves and clothing
+- Sterilization between plants
+- Proper tool maintenance
+
+## Timing Considerations
+- Best done during dry season
+- Avoid pruning during active growth periods
+- Post-harvest pruning benefits
+
+## Quality Control
+- Grading harvested shoots
+- Storage and transportation
+- Market preparation techniques`,
+        duration: 60,
+        difficulty: 'INTERMEDIATE',
+      },
+      {
+        title: 'Market Trends and Pricing Strategies',
+        description: 'Understanding miraa market dynamics and developing effective pricing strategies.',
+        category: 'BUSINESS_MANAGEMENT',
+        content: `# Market Trends and Pricing Strategies
+
+## Current Market Landscape
+The miraa industry in Kenya faces several challenges and opportunities:
+- Growing export markets
+- Domestic consumption patterns
+- Competition from other regions
+- Quality standardization needs
+
+## Pricing Factors
+1. **Grade Quality**
+   - Kangeta: Premium grade, highest price
+   - Alele: Medium grade, balanced pricing
+   - Lomboko: Entry-level grade
+
+2. **Seasonal Variations**
+   - Peak season (dry months): Higher prices
+   - Off-season: Lower prices, storage considerations
+
+3. **Market Location**
+   - Local markets vs. export destinations
+   - Transportation costs impact
+   - Regional demand differences
+
+## Pricing Strategies
+- Cost-plus pricing approach
+- Market-based pricing
+- Dynamic pricing for bulk orders
+- Long-term relationship pricing
+
+## Risk Management
+- Price fluctuation hedging
+- Diversification strategies
+- Contract farming arrangements
+- Quality improvement investments
+
+## Digital Tools for Market Intelligence
+- Price tracking applications
+- Market information systems
+- Weather impact analysis
+- Demand forecasting tools`,
+        duration: 40,
+        difficulty: 'INTERMEDIATE',
+      },
+      {
+        title: 'Sustainable Farming Practices',
+        description: 'Learn eco-friendly farming methods that ensure long-term productivity and environmental health.',
+        category: 'SUSTAINABILITY',
+        content: `# Sustainable Farming Practices for Miraa
+
+## Environmental Impact of Miraa Farming
+Traditional miraa farming can have significant environmental impacts:
+- Soil erosion and degradation
+- Water resource depletion
+- Biodiversity loss
+- Chemical runoff concerns
+
+## Sustainable Solutions
+
+### 1. Soil Conservation
+- Contour farming techniques
+- Cover cropping strategies
+- Organic matter management
+- Erosion control measures
+
+### 2. Water Management
+- Drip irrigation systems
+- Rainwater harvesting
+- Efficient watering schedules
+- Water quality monitoring
+
+### 3. Biodiversity Enhancement
+- Intercropping with companion plants
+- Natural pest control methods
+- Wildlife habitat preservation
+- Pollinator-friendly practices
+
+### 4. Waste Management
+- Organic waste composting
+- Plastic-free farming
+- Recycling agricultural materials
+- Circular economy approaches
+
+## Certification and Standards
+- Organic farming certification
+- Sustainable agriculture standards
+- Fair trade compliance
+- Environmental impact assessments
+
+## Economic Benefits
+- Long-term cost savings
+- Premium pricing for sustainable products
+- Access to green markets
+- Government incentives and subsidies
+
+## Implementation Strategies
+- Gradual transition planning
+- Training and capacity building
+- Technology adoption
+- Community-based approaches`,
+        duration: 55,
+        difficulty: 'ADVANCED',
+      },
+      {
+        title: 'Digital Tools for Farmers',
+        description: 'Leverage technology for better farm management, market access, and decision making.',
+        category: 'TECHNOLOGY',
+        content: `# Digital Tools for Modern Miraa Farmers
+
+## Farm Management Software
+- **MSMS Platform**: Comprehensive farm management
+- **Inventory Tracking**: Real-time stock monitoring
+- **Financial Management**: Expense and revenue tracking
+- **Production Records**: Historical data analysis
+
+## Market Access Tools
+- **Online Marketplaces**: Direct buyer connections
+- **Price Information Systems**: Real-time market data
+- **Export Platforms**: International market access
+- **Logistics Coordination**: Transportation management
+
+## Mobile Applications
+- **Weather Apps**: Climate monitoring and forecasting
+- **Pest Identification**: AI-powered disease detection
+- **Soil Testing**: Mobile soil analysis tools
+- **Market Price Alerts**: Instant pricing notifications
+
+## Data-Driven Decision Making
+- **Yield Prediction**: AI-powered forecasting
+- **Quality Assessment**: Automated grading systems
+- **Risk Analysis**: Market and weather risk modeling
+- **Performance Analytics**: Farm productivity metrics
+
+## Digital Literacy Skills
+- **Basic Computer Skills**: Essential for platform use
+- **Mobile Phone Proficiency**: App navigation and usage
+- **Data Entry Accuracy**: Proper record keeping
+- **Online Safety**: Secure digital practices
+
+## Getting Started
+1. **Device Access**: Smartphone or computer setup
+2. **Platform Registration**: MSMS account creation
+3. **Basic Training**: Digital tool familiarization
+4. **Practice Sessions**: Hands-on tool usage
+5. **Support Networks**: Community learning groups
+
+## Benefits of Going Digital
+- **Increased Efficiency**: Streamlined operations
+- **Better Market Access**: Direct buyer connections
+- **Improved Record Keeping**: Accurate data management
+- **Enhanced Decision Making**: Data-driven insights
+- **Financial Inclusion**: Access to digital financial services`,
+        duration: 35,
+        difficulty: 'BEGINNER',
+      },
+      {
+        title: 'Quality Control and Grading',
+        description: 'Master the art of miraa grading and quality assessment for better market positioning.',
+        category: 'QUALITY_MANAGEMENT',
+        content: `# Quality Control and Grading Standards
+
+## Miraa Grading System
+The Kenyan miraa industry uses a well-established grading system based on:
+- Shoot size and tenderness
+- Color and appearance
+- Aroma and freshness
+- Stem characteristics
+
+## Grade Categories
+
+### 1. Kangeta (Premium Grade)
+**Characteristics:**
+- Very tender, young shoots
+- Light green to yellowish color
+- Strong, pleasant aroma
+- Thin stems, minimal fiber
+
+**Market Value:** Highest price point
+**Target Market:** Export and premium domestic
+
+### 2. Alele (Medium Grade)
+**Characteristics:**
+- Moderately tender shoots
+- Green coloration
+- Good aroma retention
+- Balanced stem thickness
+
+**Market Value:** Medium price range
+**Target Market:** Domestic wholesale
+
+### 3. Lomboko (Standard Grade)
+**Characteristics:**
+- Mature shoots acceptable
+- Darker green color
+- Basic aroma profile
+- Thicker stems
+
+**Market Value:** Entry-level pricing
+**Target Market:** Local retail markets
+
+## Quality Assessment Criteria
+1. **Freshness Indicators**
+   - Shoot tenderness
+   - Color vibrancy
+   - Aroma strength
+   - Moisture content
+
+2. **Physical Characteristics**
+   - Stem thickness
+   - Shoot length
+   - Leaf condition
+   - Overall appearance
+
+3. **Packaging Standards**
+   - Clean wrapping
+   - Proper ventilation
+   - Temperature control
+   - Transit protection
+
+## Grading Process
+1. **Visual Inspection**: Initial quality assessment
+2. **Tactile Evaluation**: Tenderness and texture check
+3. **Aroma Testing**: Scent profile evaluation
+4. **Packaging Review**: Presentation quality check
+
+## Quality Improvement Strategies
+- **Harvesting Timing**: Optimal maturity selection
+- **Post-Harvest Handling**: Proper storage techniques
+- **Transportation Methods**: Temperature and humidity control
+- **Market Preparation**: Professional presentation
+
+## Certification Benefits
+- **Premium Pricing**: Quality-based price premiums
+- **Market Access**: Higher-end market entry
+- **Brand Reputation**: Quality consistency recognition
+- **Export Opportunities**: International market compliance`,
+        duration: 50,
+        difficulty: 'INTERMEDIATE',
+      },
+    ],
+  });
+
   console.log('✅ Database seeded successfully!');
 }
 
