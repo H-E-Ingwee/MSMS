@@ -209,7 +209,7 @@ export default function OrderTrackingPage() {
                 <div className="space-y-2">
                   {[
                     { label: 'Order Placed', status: 'PENDING_APPROVAL' },
-                    { label: 'Approved', status: 'APPROVED' },
+                    { label: 'Admin Approved', status: 'APPROVED' },
                     { label: 'Payment Received', status: 'PAID' },
                     { label: 'In Transit', status: 'SHIPPED' },
                     { label: 'Delivered', status: 'DELIVERED' },
@@ -232,7 +232,7 @@ export default function OrderTrackingPage() {
               {/* Notes */}
               {order.farmerNotes && (
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700 font-semibold mb-1">Farmer's Note</p>
+                  <p className="text-xs text-blue-700 font-semibold mb-1">Admin Note</p>
                   <p className="text-sm text-blue-800">{order.farmerNotes}</p>
                 </div>
               )}
@@ -244,15 +244,10 @@ export default function OrderTrackingPage() {
                     Contact Seller
                   </PrimaryButton>
                 )}
-                {order.status === 'PENDING_APPROVAL' && userRole === 'FARMER' && (
-                  <>
-                    <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
-                      Reject
-                    </button>
-                    <PrimaryButton className="flex-1">
-                      Approve Order
-                    </PrimaryButton>
-                  </>
+                {order.status === 'APPROVED' && userRole === 'BUYER' && (
+                  <PrimaryButton className="flex-1">
+                    Pay Now
+                  </PrimaryButton>
                 )}
               </div>
             </div>

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { 
   ShieldAlert, Users, Database, Activity, MapPin, 
-  Phone, User, ShoppingCart, Wallet, Leaf, AlertCircle
+  Phone, User, ShoppingCart, Wallet, Leaf, AlertCircle,
+  CheckCircle, XCircle, Clock
 } from 'lucide-react';
 import { getAdminStats, getAdminUsers, downloadAdminReport } from '../services/api';
 
@@ -10,6 +11,7 @@ export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +23,15 @@ export default function AdminDashboardPage() {
 
         const usersData = await getAdminUsers(1, 10);
         setUsers(usersData.users || []);
+
+        // Load pending orders for approval
+        const ordersResponse = await fetch('http://localhost:3001/api/orders?status=PENDING_APPROVAL', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+          },
+        });
+        const ordersData = await ordersResponse.json();
+        setPendingOrders(ordersData.orders || []);
       } catch (error) {
         console.error('Error loading admin data:', error);
         // Fallback data
@@ -31,6 +42,7 @@ export default function AdminDashboardPage() {
           revenue: 0,
         });
         setUsers([]);
+        setPendingOrders([]);
       } finally {
         setLoading(false);
       }
@@ -53,6 +65,37 @@ export default function AdminDashboardPage() {
     } catch (error) {
       console.error('Error downloading report:', error);
       alert('Error downloading report');
+    }
+  };
+
+  const handleOrderApproval = async (orderId, approved, notes = '') => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/orders/${orderId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify({ approved, farmerNotes: notes }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process order approval');
+      }
+
+      alert(approved ? 'Order approved successfully!' : 'Order rejected.');
+      
+      // Reload pending orders
+      const ordersResponse = await fetch('http://localhost:3001/api/orders?status=PENDING_APPROVAL', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+      });
+      const ordersData = await ordersResponse.json();
+      setPendingOrders(ordersData.orders || []);
+    } catch (error) {
+      console.error('Error approving order:', error);
+      alert('Failed to process order approval');
     }
   };
 
@@ -157,6 +200,81 @@ export default function AdminDashboardPage() {
             Listings Report
           </button>
         </div>
+      </div>
+
+      {/* Pending Orders for Approval */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
+            <Clock size={20} className="text-orange-500" />
+            Pending Order Approvals ({pendingOrders.length})
+          </h3>
+        </div>
+        {pendingOrders.length === 0 ? (
+          <div className="text-center py-8">
+            <CheckCircle size={48} className="mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500">No pending orders for approval</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingOrders.slice(0, 5).map((order) => (
+              <div key={order.id} className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-bold text-gray-800">
+                      {order.quantity}kg {order.listing?.grade} Miraa
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Order #{order.id.substring(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-emerald-700">KES {order.totalPrice?.toLocaleString()}</p>
+                    <p className="text-xs text-gray-500">Total</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-gray-500">Buyer</p>
+                    <p className="text-sm font-medium">{order.buyer?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Farmer</p>
+                    <p className="text-sm font-medium">{order.listing?.farmer?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Location</p>
+                    <p className="text-sm font-medium">{order.deliveryAddress || 'Pickup'}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleOrderApproval(order.id, true)}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle size={16} />
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => {
+                      const notes = prompt('Reason for rejection (optional):');
+                      handleOrderApproval(order.id, false, notes);
+                    }}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2"
+                  >
+                    <XCircle size={16} />
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+            {pendingOrders.length > 5 && (
+              <p className="text-center text-sm text-gray-500 pt-4">
+                And {pendingOrders.length - 5} more pending orders...
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tables Section */}
