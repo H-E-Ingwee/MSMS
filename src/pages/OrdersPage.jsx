@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Package, Clock, CheckCircle, XCircle, Truck, MessageCircle } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, Truck, MessageCircle, Check, X, Eye } from 'lucide-react';
 import SectionHeading from '../components/atoms/SectionHeading';
+import PrimaryButton from '../components/atoms/PrimaryButton';
 import { getOrders } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [farmerNotes, setFarmerNotes] = useState('');
+  const [processingApproval, setProcessingApproval] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     loadOrders();
@@ -25,8 +32,12 @@ export default function OrdersPage() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'PENDING':
+      case 'PENDING_APPROVAL':
         return <Clock className="w-5 h-5 text-yellow-500" />;
+      case 'APPROVED':
+        return <CheckCircle className="w-5 h-5 text-blue-500" />;
+      case 'PENDING_PAYMENT':
+        return <Clock className="w-5 h-5 text-orange-500" />;
       case 'PAID':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'SHIPPED':
@@ -42,8 +53,12 @@ export default function OrdersPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'PENDING':
+      case 'PENDING_APPROVAL':
         return 'bg-yellow-100 text-yellow-800';
+      case 'APPROVED':
+        return 'bg-blue-100 text-blue-800';
+      case 'PENDING_PAYMENT':
+        return 'bg-orange-100 text-orange-800';
       case 'PAID':
         return 'bg-green-100 text-green-800';
       case 'SHIPPED':
@@ -67,6 +82,114 @@ export default function OrdersPage() {
     window.open(whatsappUrl, '_blank');
   };
 
+  const handleApproveOrder = (order) => {
+    setSelectedOrder(order);
+    setFarmerNotes('');
+    setShowApprovalModal(true);
+  };
+
+  const handleApprovalDecision = async (approved) => {
+    if (!selectedOrder) return;
+
+    setProcessingApproval(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/orders/${selectedOrder.id}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify({
+          approved,
+          farmerNotes: farmerNotes.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process approval');
+      }
+
+      alert(approved ? 'Order approved successfully!' : 'Order rejected.');
+      setShowApprovalModal(false);
+      setSelectedOrder(null);
+      loadOrders(); // Refresh orders
+
+    } catch (error) {
+      console.error('Approval failed:', error);
+      alert('Failed to process approval. Please try again.');
+    } finally {
+      setProcessingApproval(false);
+    }
+  };
+
+  const handlePayOrder = async (order) => {
+    try {
+      const paymentResult = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/payments/order/${order.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify({
+          paymentMethod: 'MPESA',
+          phoneNumber: '254712345678', // This should come from user profile
+          amount: order.totalPrice,
+        }),
+      });
+
+      if (!paymentResult.ok) {
+        throw new Error('Payment failed');
+      }
+
+      alert(`Payment initiated! Check your phone for M-Pesa prompt. Total: KES ${order.totalPrice}`);
+      loadOrders(); // Refresh orders
+
+    } catch (error) {
+      console.error('Payment failed:', error);
+      alert('Payment failed. Please try again.');
+    }
+  };
+
+  const getActionButtons = (order) => {
+    const isFarmer = user?.role === 'FARMER' && order.listing.farmerId === user.id;
+    const isBuyer = user?.role === 'BUYER' && order.buyerId === user.id;
+
+    if (isFarmer && order.status === 'PENDING_APPROVAL') {
+      return (
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleApproveOrder(order)}
+            className="px-3 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium flex items-center gap-1"
+          >
+            <Check size={14} /> Review
+          </button>
+        </div>
+      );
+    }
+
+    if (isBuyer && order.status === 'APPROVED') {
+      return (
+        <div className="flex gap-2">
+          <PrimaryButton
+            onClick={() => handlePayOrder(order)}
+            className="px-3 py-1.5 text-sm"
+          >
+            Pay Now
+          </PrimaryButton>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        onClick={() => handleContactSeller(order)}
+        className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium flex items-center gap-1"
+      >
+        <MessageCircle size={14} /> Contact
+      </button>
+    );
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -85,7 +208,7 @@ export default function OrdersPage() {
 
       {/* Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {['ALL', 'PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map(status => (
+        {['ALL', 'PENDING_APPROVAL', 'APPROVED', 'PENDING_PAYMENT', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map(status => (
           <button
             key={status}
             onClick={() => setFilter(status)}
@@ -93,7 +216,7 @@ export default function OrdersPage() {
               filter === status ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
             }`}
           >
-            {status === 'ALL' ? 'All Orders' : status}
+            {status === 'ALL' ? 'All Orders' : status.replace('_', ' ')}
           </button>
         ))}
       </div>
@@ -118,27 +241,40 @@ export default function OrdersPage() {
                     <p className="text-sm text-gray-500">
                       Order #{order.id.slice(-8)} • {new Date(order.createdAt).toLocaleDateString()}
                     </p>
+                    {order.farmerNotes && (
+                      <p className="text-sm text-gray-600 mt-1 italic">
+                        "{order.farmerNotes}"
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-xl text-emerald-700">KES {order.totalPrice.toLocaleString()}</p>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                    {order.status}
+                    {order.status.replace('_', ' ')}
                   </span>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-gray-50 p-4 rounded-xl">
-                  <h4 className="font-medium text-gray-800 mb-2">Seller Information</h4>
+                  <h4 className="font-medium text-gray-800 mb-2">
+                    {user?.role === 'FARMER' ? 'Buyer' : 'Seller'} Information
+                  </h4>
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
-                      {order.listing.farmer.name.charAt(0)}
+                      {user?.role === 'FARMER' ? order.buyer.name.charAt(0) : order.listing.farmer.name.charAt(0)}
                     </div>
-                    <span className="font-medium">{order.listing.farmer.name}</span>
-                    {order.listing.farmer.verified && <CheckCircle className="w-4 h-4 text-blue-500" />}
+                    <span className="font-medium">
+                      {user?.role === 'FARMER' ? order.buyer.name : order.listing.farmer.name}
+                    </span>
+                    {(user?.role === 'FARMER' ? order.buyer.verified : order.listing.farmer.verified) && (
+                      <CheckCircle className="w-4 h-4 text-blue-500" />
+                    )}
                   </div>
-                  <p className="text-sm text-gray-600">{order.listing.location}</p>
+                  <p className="text-sm text-gray-600">
+                    {user?.role === 'FARMER' ? (order.buyer.location || 'Nairobi') : order.listing.location}
+                  </p>
                 </div>
 
                 <div className="bg-gray-50 p-4 rounded-xl">
@@ -151,21 +287,73 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleContactSeller(order)}
-                  className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <MessageCircle size={16} /> Contact Seller
-                </button>
-                {order.status === 'PAID' && (
-                  <button className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium">
-                    Track Delivery
-                  </button>
-                )}
+              <div className="flex gap-2 justify-end">
+                {getActionButtons(order)}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Approval Modal */}
+      {showApprovalModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Review Order Request</h3>
+              <button
+                onClick={() => setShowApprovalModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">{selectedOrder.listing.grade}</span>
+                  <span className="font-bold text-emerald-700">KES {selectedOrder.listing.price}/kg</span>
+                </div>
+                <p className="text-sm text-gray-600">Requested: {selectedOrder.quantity}kg</p>
+                <p className="text-sm text-gray-600">Buyer: {selectedOrder.buyer.name}</p>
+                <p className="text-sm text-gray-600">Total: KES {selectedOrder.totalPrice.toLocaleString()}</p>
+                {selectedOrder.deliveryAddress && (
+                  <p className="text-sm text-gray-600">Delivery: {selectedOrder.deliveryAddress}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={farmerNotes}
+                  onChange={(e) => setFarmerNotes(e.target.value)}
+                  placeholder="Add any notes for the buyer..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  rows="3"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleApprovalDecision(false)}
+                  disabled={processingApproval}
+                  className="flex-1 px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                >
+                  {processingApproval ? 'Processing...' : 'Reject Order'}
+                </button>
+                <PrimaryButton
+                  onClick={() => handleApprovalDecision(true)}
+                  disabled={processingApproval}
+                  className="flex-1"
+                >
+                  {processingApproval ? 'Processing...' : 'Approve Order'}
+                </PrimaryButton>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
