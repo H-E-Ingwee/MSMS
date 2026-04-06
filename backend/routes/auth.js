@@ -9,11 +9,14 @@ import africastalking from 'africastalking';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Initialize Africa's Talking
-const africasTalking = africastalking({
-  apiKey: process.env.AFRICASTALKING_API_KEY,
-  username: process.env.AFRICASTALKING_USERNAME,
-});
+// Initialize Africa's Talking (only if credentials are available)
+let africasTalking = null;
+if (process.env.AFRICASTALKING_API_KEY && process.env.AFRICASTALKING_USERNAME) {
+  africasTalking = africastalking({
+    apiKey: process.env.AFRICASTALKING_API_KEY,
+    username: process.env.AFRICASTALKING_USERNAME,
+  });
+}
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -32,15 +35,22 @@ const generateOTP = () => {
 // Send SMS OTP
 const sendSMSOTP = async (phone, otp) => {
   try {
+    // In development without Africa's Talking credentials, just log the OTP
+    if (!africasTalking) {
+      console.log(`📱 DEVELOPMENT MODE: SMS OTP for ${phone}: ${otp}`);
+      console.log('⚠️  Add AFRICASTALKING_API_KEY and AFRICASTALKING_USERNAME to send real SMS');
+      return true;
+    }
+
     const sms = africasTalking.SMS;
     const message = `Your MiraaLink verification code is: ${otp}. Valid for 5 minutes.`;
-    
+
     const result = await sms.send({
       to: phone,
       message: message,
       from: process.env.AFRICASTALKING_SENDER_ID || 'MiraaLink'
     });
-    
+
     console.log('📱 SMS sent successfully:', result);
     return true;
   } catch (error) {
