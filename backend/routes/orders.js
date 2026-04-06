@@ -135,11 +135,15 @@ router.post('/', [
   authenticateToken,
   body('listingId').isString().notEmpty().withMessage('Listing ID is required'),
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
-  body('deliveryAddress').optional().isString().trim(),
+  body('deliveryAddress').optional({ nullable: true }).isString().trim(),
 ], async (req, res) => {
+  console.log('🔄 Order creation attempt:', {
+    body: req.body,
+    user: req.user ? { id: req.user.id, name: req.user.name } : 'No user',
+    headers: req.headers.authorization ? 'Has auth header' : 'No auth header'
+  });
+
   try {
-    console.log('Order creation request:', req.body); // Debug log
-    console.log('User:', req.user); // Debug log
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

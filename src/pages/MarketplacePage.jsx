@@ -60,11 +60,17 @@ export default function MarketplacePage() {
     setProcessingPurchase(true);
     try {
       // Create the order request (will be PENDING_APPROVAL)
-      const order = await createOrder({
+      const orderData = {
         listingId: selectedListing.id,
         quantity: purchaseQuantity,
-        deliveryAddress: deliveryAddress.trim() || null,
-      });
+      };
+
+      // Only include deliveryAddress if it's not empty
+      if (deliveryAddress.trim()) {
+        orderData.deliveryAddress = deliveryAddress.trim();
+      }
+
+      const order = await createOrder(orderData);
 
       alert(`Order request sent successfully! The farmer will review your order for ${purchaseQuantity}kg of ${selectedListing.grade}. You'll be notified once approved.`);
 
