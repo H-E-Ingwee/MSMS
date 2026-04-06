@@ -307,6 +307,9 @@ router.post('/order/:orderId', [
     });
   }
 });
+
+// Check payment status
+router.get('/status/:transactionId', authenticateToken, async (req, res) => {
   try {
     const { transactionId } = req.params;
 
@@ -343,136 +346,6 @@ router.post('/order/:orderId', [
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to check payment status',
-    });
-  }
-});
-
-// Process order payment
-router.post('/order/:orderId', [
-  authenticateToken,
-  body('paymentMethod').isIn(['WALLET', 'MPESA']).withMessage('Invalid payment method'),
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        error: 'Validation Error',
-        message: 'Invalid payment method',
-        details: errors.array(),
-      });
-    }
-
-    const { orderId } = req.params;
-    const { paymentMethod } = req.body;
-
-    // Get order details
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: { listing: true },
-    });
-
-    if (!order) {
-      return res.status(404).json({
-        error: 'Not Found',
-        message: 'Order not found',
-      });
-    }
-
-    if (order.buyerId !== req.user.id) {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'You do not have permission to pay for this order',
-      });
-    }
-
-    if (order.status !== 'CONFIRMED') {
-      return res.status(400).json({
-        error: 'Invalid Order Status',
-        message: 'Order must be confirmed before payment',
-      });
-    }
-
-    if (paymentMethod === 'WALLET') {
-      // Check wallet balance
-      const transactions = await prisma.walletTransaction.findMany({
-        where: { userId: req.user.id },
-      });
-
-      const balance = transactions.reduce((acc, transaction) => {
-        return transaction.type === 'CREDIT' ? acc + transaction.amount : acc - transaction.amount;
-      }, 0);
-
-      if (balance < order.totalPrice) {
-        return res.status(400).json({
-          error: 'Insufficient Balance',
-          message: 'You do not have enough funds in your wallet',
-        });
-      }
-
-      // Deduct from wallet
-      await prisma.walletTransaction.create({
-        data: {
-          userId: req.user.id,
-          amount: order.totalPrice,
-          type: 'DEBIT',
-          description: `Payment for order ${orderId}`,
-          status: 'COMPLETED',
-        },
-      });
-
-      // Update order status
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { status: 'PAID' },
-      });
-
-      res.json({
-        message: 'Payment processed successfully',
-        orderId,
-        paymentMethod: 'WALLET',
-      });
-    } else if (paymentMethod === 'MPESA') {
-      // Initiate M-Pesa payment
-      const transactionRef = `ORDER${orderId}_${Date.now()}`;
-
-      const transaction = await prisma.walletTransaction.create({
-        data: {
-          userId: req.user.id,
-          amount: order.totalPrice,
-          type: 'DEBIT',
-          description: `Payment for order ${orderId}`,
-          status: 'PENDING',
-          reference: transactionRef,
-        },
-      });
-
-      // In a real implementation, initiate M-Pesa STK Push here
-      // For simulation, mark as completed after delay
-      setTimeout(async () => {
-        await prisma.walletTransaction.update({
-          where: { id: transaction.id },
-          data: { status: 'COMPLETED' },
-        });
-
-        await prisma.order.update({
-          where: { id: orderId },
-          data: { status: 'PAID' },
-        });
-      }, 5000);
-
-      res.json({
-        message: 'M-Pesa payment initiated',
-        orderId,
-        paymentMethod: 'MPESA',
-        transactionId: transaction.id,
-        instructions: 'Please complete the payment on your phone',
-      });
-    }
-  } catch (error) {
-    console.error('Process order payment error:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to process payment',
     });
   }
 });
