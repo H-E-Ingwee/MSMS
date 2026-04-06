@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { getUserByPhone, saveUser } from '../services/api';
-
-const LOCAL_STORAGE_KEY = 'msms_auth';
+import { getCurrentUser, loginWithOtp, registerUser, logout as apiLogout } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -10,43 +8,42 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setUser(parsed);
-      } catch (err) {
-        console.error('Invalid user data in localStorage', err);
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
+    const initAuth = async () => {
+      const stored = localStorage.getItem('msms_auth');
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored));
+          const refreshed = await getCurrentUser();
+          setUser(refreshed.user || refreshed);
+          localStorage.setItem('msms_auth', JSON.stringify(refreshed.user || refreshed));
+        } catch (err) {
+          console.warn('Unable to refresh auth session', err);
+          apiLogout();
+          setUser(null);
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+    initAuth();
   }, []);
 
   const login = async ({ phone, otp }) => {
-    // OTP is mocked as 1234 for demo
-    if (otp !== '1234') {
-      throw new Error('Incorrect OTP. Use 1234 for demo.');
-    }
-    let account = await getUserByPhone(phone);
-    if (!account) {
-      throw new Error('User not found. Please register.');
-    }
-    setUser(account);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(account));
-    return account;
+    const response = await loginWithOtp(phone, otp);
+    setUser(response.user);
+    localStorage.setItem('msms_auth', JSON.stringify(response.user));
+    return response.user;
   };
 
   const register = async ({ name, phone, role, location }) => {
-    const account = await saveUser({ name, phone, role, location });
-    setUser(account);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(account));
-    return account;
+    const response = await registerUser({ name, phone, role, location });
+    setUser(response.user);
+    localStorage.setItem('msms_auth', JSON.stringify(response.user));
+    return response.user;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    apiLogout();
   };
 
   const value = useMemo(() => ({ user, loading, login, register, logout }), [user, loading]);

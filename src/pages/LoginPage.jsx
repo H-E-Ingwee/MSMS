@@ -4,18 +4,40 @@ import SectionHeading from '../components/atoms/SectionHeading';
 import PrimaryButton from '../components/atoms/PrimaryButton';
 import Input from '../components/atoms/Input';
 import { useAuth } from '../context/AuthContext';
+import { requestOtp } from '../services/api';
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handleRequestOtp = async () => {
+    if (!phone) {
+      setError('Please enter your phone number first.');
+      return;
+    }
+    setError('');
+    setMessage('');
+    setIsRequestingOtp(true);
+    try {
+      await requestOtp(phone);
+      setMessage('OTP sent successfully. Check the backend console or your phone.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsRequestingOtp(false);
+    }
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
+    setMessage('');
     setIsSubmitting(true);
     try {
       await login({ phone, otp });

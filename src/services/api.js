@@ -1,21 +1,29 @@
-import { predictiveData, marketListings, trainingModules, walletTransactions } from '../data/mockData';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const AUTH_USER_KEY = 'msms_auth';
+const AUTH_TOKEN_KEY = 'msms_token';
 
-// Backend integration: Replace with your actual API base URL
-const API_BASE_URL = 'https://api.miraalink.com'; // TODO: Update with real backend URL
+const getAuthHeaders = () => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
-// Helper function for API calls
 const apiCall = async (endpoint, options = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
         ...options.headers,
       },
       ...options,
     });
+
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      const errorBody = await response.json().catch(() => null);
+      const message = errorBody?.message || response.statusText;
+      throw new Error(`API Error: ${message}`);
     }
+
     return await response.json();
   } catch (error) {
     console.error(`API call failed: ${endpoint}`, error);
@@ -23,97 +31,91 @@ const apiCall = async (endpoint, options = {}) => {
   }
 };
 
-// Predictive data - keep mock for now
+export const requestOtp = async phone => {
+  return await apiCall('/auth/request-otp', {
+    method: 'POST',
+    body: JSON.stringify({ phone }),
+  });
+};
+
+export const loginWithOtp = async (phone, otp) => {
+  const response = await apiCall('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ phone, otp }),
+  });
+
+  localStorage.setItem(AUTH_TOKEN_KEY, response.token);
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user));
+
+  return response;
+};
+
+export const registerUser = async ({ name, phone, role, location }) => {
+  const response = await apiCall('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ name, phone, role: role.toUpperCase(), location }),
+  });
+
+  localStorage.setItem(AUTH_TOKEN_KEY, response.token);
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user));
+
+  return response;
+};
+
+export const getCurrentUser = async () => {
+  return await apiCall('/auth/profile');
+};
+
 export const getPredictiveData = async () => {
-  // TODO: Replace with real API call
-  // return await apiCall('/predictive');
-  return new Promise(resolve => setTimeout(() => resolve(predictiveData), 250));
+  const response = await apiCall('/predictive');
+  return response.predictions || response;
 };
 
 export const getTrainingModules = async () => {
-  // TODO: Replace with real API call
-  // return await apiCall('/training');
-  return new Promise(resolve => setTimeout(() => resolve(trainingModules), 250));
+  const response = await apiCall('/training');
+  return response.modules || response;
 };
 
 export const getWalletData = async () => {
-  // TODO: Replace with real API call
-  // return await apiCall('/wallet');
-  return new Promise(resolve => setTimeout(() => resolve({balance: 45200, transactions: walletTransactions}), 250));
-};
-
-
-let users = [];
-let listings = [...marketListings];
-let orders = [];
-
-export const getUserByPhone = async phone => {
-  // TODO: Replace with real API call
-  // return await apiCall(`/users/phone/${phone}`);
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const user = users.find(u => u.phone === phone);
-      resolve(user || null);
-    }, 250);
-  });
-};
-
-export const saveUser = async ({ name, phone, role, location }) => {
-  // TODO: Replace with real API call
-  // return await apiCall('/users', { method: 'POST', body: JSON.stringify({ name, phone, role, location }) });
-  return new Promise(resolve => {
-    setTimeout(() => {
-      let existing = users.find(u => u.phone === phone);
-      if (!existing) {
-        existing = { id: Date.now(), name, phone, role, location, createdAt: new Date().toISOString() };
-        users.push(existing);
-      } else {
-        existing = { ...existing, name, role, location };
-      }
-      resolve(existing);
-    }, 300);
-  });
-};
-
-export const postNewListing = async listing => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const saved = { ...listing, id: Date.now(), createdAt: new Date().toISOString(), status: 'AVAILABLE' };
-      listings.push(saved);
-      resolve(saved);
-    }, 300);
-  });
+  const response = await apiCall('/wallet');
+  return response;
 };
 
 export const getMarketListings = async () => {
-  return new Promise(resolve => setTimeout(() => resolve(listings), 250));
+  const response = await apiCall('/listings');
+  return response.listings || response;
+};
+
+export const postNewListing = async listing => {
+  const response = await apiCall('/listings', {
+    method: 'POST',
+    body: JSON.stringify(listing),
+  });
+  return response.listing || response;
 };
 
 export const createOrder = async order => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const saved = { ...order, id: Date.now(), createdAt: new Date().toISOString(), status: 'PENDING' };
-      orders.push(saved);
-      resolve(saved);
-    }, 300);
+  const response = await apiCall('/orders', {
+    method: 'POST',
+    body: JSON.stringify(order),
   });
+  return response.order || response;
 };
 
-export const getOrders = async userId => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(orders.filter(o => o.buyerId === userId || o.sellerId === userId));
-    }, 250);
-  });
+export const getOrders = async () => {
+  const response = await apiCall('/orders');
+  return response.orders || response;
 };
 
-export const processMpesaPayment = async ({ amount, phone, orderId }) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (!amount || !phone || !orderId) {
-        return reject(new Error('Missing payment parameters')); 
-      }
-      resolve({ status: 'SUCCESS', transactionId: `MPESA-${Date.now()}`, amount, orderId });
-    }, 600);
+export const processMpesaPayment = async ({ amount, phoneNumber, orderId }) => {
+  const response = await apiCall(`/payments/order/${orderId}`, {
+    method: 'POST',
+    body: JSON.stringify({ paymentMethod: 'MPESA', phoneNumber, amount }),
   });
+  return response;
+};
+
+export const logout = () => {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
 };
