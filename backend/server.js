@@ -15,6 +15,7 @@ import trainingRoutes from './routes/training.js';
 import walletRoutes from './routes/wallet.js';
 import paymentsRoutes from './routes/payments.js';
 import adminRoutes from './routes/admin.js';
+import notificationsRoutes from './routes/notifications.js';
 
 // Load environment variables
 dotenv.config();
@@ -86,6 +87,7 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/payments', paymentsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -94,6 +94,64 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Create new listing (farmers only)
+router.post('/', [
+  authenticateToken,
+  requireRole('FARMER'),
+  body('grade').isIn(['Kangeta', 'Alele', 'Giza', 'Lomboko']).withMessage('Invalid grade'),
+  body('quantity').isInt({ min: 1, max: 10000 }).withMessage('Quantity must be between 1 and 10000 kg'),
+  body('price').isFloat({ min: 1, max: 10000 }).withMessage('Price must be between 1 and 10000 KES per kg'),
+  body('location').trim().isLength({ min: 2, max: 100 }).withMessage('Location must be 2-100 characters'),
+  body('description').optional().trim().isLength({ max: 500 }).withMessage('Description must be less than 500 characters'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Invalid input data',
+        details: errors.array(),
+      });
+    }
+
+    const { grade, quantity, price, location, description } = req.body;
+
+    // Create listing
+    const listing = await prisma.listing.create({
+      data: {
+        grade,
+        quantity,
+        price,
+        location,
+        description,
+        farmerId: req.user.id,
+      },
+      include: {
+        farmer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            verified: true,
+            location: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json({
+      message: 'Listing created successfully',
+      listing,
+    });
+  } catch (error) {
+    console.error('Create listing error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to create listing',
+    });
+  }
+});
+
 // Get single listing
 router.get('/:id', async (req, res) => {
   try {

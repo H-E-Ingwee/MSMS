@@ -178,11 +178,13 @@ router.post('/order/:orderId', [
       });
     }
 
-    // Check if order is still pending
-    if (order.status !== 'PENDING') {
+    // Check if order is approved and ready for payment
+    if (order.status !== 'APPROVED') {
       return res.status(400).json({
         error: 'Invalid Order Status',
-        message: 'Order has already been processed',
+        message: order.status === 'PENDING_APPROVAL'
+          ? 'Order is waiting for farmer approval'
+          : 'Order is not ready for payment',
       });
     }
 
