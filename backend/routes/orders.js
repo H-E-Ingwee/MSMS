@@ -216,12 +216,6 @@ router.post('/', [
         orderId: order.id,
       },
     });
-            name: true,
-            phone: true,
-          },
-        },
-      },
-    });
 
     // Update listing quantity (reserve the ordered amount)
     await prisma.listing.update({
