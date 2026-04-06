@@ -59,21 +59,14 @@ export default function MarketplacePage() {
 
     setProcessingPurchase(true);
     try {
-      // Create the order
+      // Create the order request (will be PENDING_APPROVAL)
       const order = await createOrder({
         listingId: selectedListing.id,
         quantity: purchaseQuantity,
         deliveryAddress: deliveryAddress.trim() || null,
       });
 
-      // Process M-Pesa payment
-      const paymentResult = await processMpesaPayment({
-        amount: order.totalPrice,
-        phoneNumber: '254712345678', // This should come from user profile
-        orderId: order.id,
-      });
-
-      alert(`Order created successfully! Total: KES ${order.totalPrice}. Check your phone for M-Pesa payment prompt.`);
+      alert(`Order request sent successfully! The farmer will review your order for ${purchaseQuantity}kg of ${selectedListing.grade}. You'll be notified once approved.`);
 
       setShowPurchaseModal(false);
       setSelectedListing(null);
@@ -81,7 +74,7 @@ export default function MarketplacePage() {
 
     } catch (error) {
       console.error('Purchase failed:', error);
-      alert('Purchase failed. Please try again.');
+      alert('Order request failed. Please try again.');
     } finally {
       setProcessingPurchase(false);
     }
@@ -217,11 +210,14 @@ export default function MarketplacePage() {
                 />
               </div>
 
-              <div className="bg-emerald-50 p-4 rounded-xl">
+              <div className="bg-blue-50 p-4 rounded-xl">
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span>Total:</span>
-                  <span className="text-emerald-700">KES {(purchaseQuantity * selectedListing.price).toLocaleString()}</span>
+                  <span className="text-blue-700">KES {(purchaseQuantity * selectedListing.price).toLocaleString()}</span>
                 </div>
+                <p className="text-sm text-blue-600 mt-2">
+                  This will send an order request to the farmer. Payment will be processed after approval.
+                </p>
               </div>
 
               <div className="flex gap-3">
@@ -236,7 +232,7 @@ export default function MarketplacePage() {
                   disabled={processingPurchase}
                   className="flex-1"
                 >
-                  {processingPurchase ? 'Processing...' : 'Pay with M-Pesa'}
+                  {processingPurchase ? 'Sending Request...' : 'Send Order Request'}
                 </PrimaryButton>
               </div>
             </div>
