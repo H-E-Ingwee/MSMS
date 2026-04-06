@@ -28,8 +28,8 @@ export default function LoginPage() {
     setIsRequestingOtp(true);
     
     try {
-      // Assuming requestOtp is a mock or handles the API call
-      await requestOtp(phone);
+      const formattedPhone = phone.startsWith('+254') ? phone : `+254${phone}`;
+      await requestOtp(formattedPhone);
       setMessage('OTP sent successfully. Check the backend console or your phone.');
     } catch (err) {
       setError(err.message || 'Failed to request OTP');
@@ -50,7 +50,8 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
-      const loggedInUser = await login(phone, otp);
+      const formattedPhone = phone.startsWith('+254') ? phone : `+254${phone}`;
+      const loggedInUser = await login({ phone: formattedPhone, otp });
       
       // Route based on role
       if (loggedInUser.role === 'ADMIN') {
@@ -87,8 +88,9 @@ export default function LoginPage() {
               <input 
                 type="tel" 
                 value={phone} 
-                onChange={e => setPhone(e.target.value)} 
+                onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(-9))} 
                 placeholder="707897640" 
+                maxLength="9"
                 className="w-full pl-14 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               />
             </div>
