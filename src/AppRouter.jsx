@@ -167,6 +167,7 @@ function MobileSidebar({ isOpen, onClose }) {
 export default function AppRouter() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
+  const { loading: authLoading } = useAuth();
 
   // Close sidebar on route change
   React.useEffect(() => {
@@ -175,6 +176,15 @@ export default function AppRouter() {
 
   // Determine if we should show header and sidebar
   const isAuthPage = ['/login', '/register', '/'].includes(location.pathname);
+
+  // Show loading spinner while auth is loading
+  if (authLoading && !isAuthPage) {
+    return (
+      <div className="flex h-screen bg-gray-50 items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-900 overflow-hidden">
