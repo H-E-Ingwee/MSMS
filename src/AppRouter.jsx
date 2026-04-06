@@ -11,6 +11,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import BuyerOrderHistoryPage from './pages/BuyerOrderHistoryPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Header from './components/Header';
 import { useAuth } from './context/AuthContext';
@@ -31,7 +32,7 @@ function DesktopSidebar() {
   const allNavItems = [
     { id: 'dashboard', label: 'Predictive', path: '/dashboard', icon: TrendingUp },
     { id: 'marketplace', label: 'Market', path: '/marketplace', icon: ShoppingCart },
-    { id: 'orders', label: 'Orders', path: '/orders', icon: Package },
+    { id: 'orders', label: user?.role === 'BUYER' ? 'Order History' : 'Orders', path: user?.role === 'BUYER' ? '/orders/history' : '/orders', icon: Package },
     { id: 'training', label: 'Learn', path: '/training', icon: BookOpen },
     { id: 'wallet', label: 'M-Pesa', path: '/wallet', icon: Wallet },
     { id: 'profile', label: 'Profile', path: '/profile', icon: User },
@@ -200,6 +201,7 @@ export default function AppRouter() {
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                 <Route path="/marketplace" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
                 <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+                <Route path="/orders/history" element={<ProtectedRoute><BuyerOrderHistoryPage /></ProtectedRoute>} />
                 <Route path="/training" element={<ProtectedRoute><TrainingPage /></ProtectedRoute>} />
                 <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

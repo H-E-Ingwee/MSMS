@@ -443,4 +443,123 @@ router.put('/:id/status', [
   }
 });
 
+// Get buyer order history with reviews
+router.get('/buyer/history', authenticateToken, requireRole('BUYER'), async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      where: { buyerId: req.user.id },
+      include: {
+        listing: {
+          include: {
+            farmer: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+              },
+            },
+          },
+        },
+        review: true, // Include review if exists
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(orders);
+  } catch (error) {
+    console.error('Get buyer order history error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch order history',
+    });
+  }
+});
+
+// Submit review for delivered order
+router.post('/:id/review', [
+  authenticateToken,
+  requireRole('BUYER'),
+  body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
+  body('comment').trim().isLength({ min: 10, max: 500 }).withMessage('Comment must be 10-500 characters'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Invalid input data',
+        details: errors.array(),
+      });
+    }
+
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+
+    // Find the order
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        listing: true,
+        review: true,
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Order not found',
+      });
+    }
+
+    // Check if user is the buyer
+    if (order.buyerId !== req.user.id) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'You can only review your own orders',
+      });
+    }
+
+    // Check if order is delivered
+    if (order.status !== 'DELIVERED') {
+      return res.status(400).json({
+        error: 'Invalid Order Status',
+        message: 'You can only review delivered orders',
+      });
+    }
+
+    // Check if review already exists
+    if (order.review) {
+      return res.status(400).json({
+        error: 'Review Already Exists',
+        message: 'You have already reviewed this order',
+      });
+    }
+
+    // Create review
+    const review = await prisma.review.create({
+      data: {
+        orderId: id,
+        buyerId: req.user.id,
+        farmerId: order.listing.farmerId,
+        rating,
+        comment,
+      },
+    });
+
+    // Update farmer's average rating (optional enhancement)
+    // This could be done with a database trigger or computed field
+
+    res.status(201).json({
+      message: 'Review submitted successfully',
+      review,
+    });
+  } catch (error) {
+    console.error('Submit review error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to submit review',
+    });
+  }
+});
+
 export default router;
