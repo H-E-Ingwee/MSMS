@@ -120,30 +120,3 @@ export const processMpesaCallback = (callbackData) => {
     throw error;
   }
 };
-
-// Validate phone number format
-export const validatePhoneNumber = (phone) => {
-  // Accept formats: 254123456789, +254123456789, 0123456789
-  const cleaned = phone.replace(/\D/g, '');
-  
-  if (cleaned.startsWith('254')) {
-    return cleaned;
-  } else if (cleaned.startsWith('0')) {
-    return '254' + cleaned.substring(1);
-  } else {
-    throw new Error('Invalid phone number format');
-  }
-};
-
-// Generate transaction reference
-export const generateTransactionRef = (orderId) => {
-  return `MSMS${orderId}${Date.now()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-};
-
-export default {
-  getMpesaToken,
-  initiateSTKPush,
-  queryStkPushStatus,
-  validatePhoneNumber,
-  generateTransactionRef,
-};
