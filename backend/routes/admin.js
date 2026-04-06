@@ -250,4 +250,280 @@ router.get('/reports/listings', authenticateToken, requireAdmin, async (req, res
   }
 });
 
+// Verify/unverify user
+router.put('/users/:id/verify', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { verified } = req.body;
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { verified: verified },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        role: true,
+        location: true,
+        verified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.json({
+      message: `User ${verified ? 'verified' : 'unverified'} successfully`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error('Error updating user verification:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to update user verification',
+    });
+  }
+});
+
+// Change user role
+router.put('/users/:id/role', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!['FARMER', 'BUYER', 'ADMIN'].includes(role)) {
+      return res.status(400).json({
+        error: 'Invalid Role',
+        message: 'Role must be FARMER, BUYER, or ADMIN',
+      });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { role: role },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        role: true,
+        location: true,
+        verified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.json({
+      message: `User role updated to ${role} successfully`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to update user role',
+    });
+  }
+});
+
+// Suspend/activate user account
+router.put('/users/:id/status', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { active } = req.body;
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { active: active },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        role: true,
+        location: true,
+        verified: true,
+        active: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.json({
+      message: `User account ${active ? 'activated' : 'suspended'} successfully`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to update user status',
+    });
+  }
+});
+
+// Delete user (soft delete by marking as inactive)
+router.delete('/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user has active orders or listings
+    const userWithRelations = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        listings: { where: { status: 'ACTIVE' } },
+        orders: { where: { status: { in: ['PENDING_APPROVAL', 'APPROVED', 'PENDING_PAYMENT', 'PAID', 'SHIPPED'] } } },
+      },
+    });
+
+    if (!userWithRelations) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'User not found',
+      });
+    }
+
+    if (userWithRelations.listings.length > 0 || userWithRelations.orders.length > 0) {
+      return res.status(400).json({
+        error: 'Cannot Delete User',
+        message: 'User has active listings or orders. Please resolve these first.',
+      });
+    }
+
+    // Soft delete by marking as inactive
+    await prisma.user.update({
+      where: { id },
+      data: { active: false },
+    });
+
+    res.json({
+      message: 'User deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to delete user',
+    });
+  }
+});
+
+// Bulk operations
+router.post('/users/bulk', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { operation, userIds, data } = req.body;
+
+    if (!['verify', 'unverify', 'activate', 'suspend', 'delete'].includes(operation)) {
+      return res.status(400).json({
+        error: 'Invalid Operation',
+        message: 'Operation must be verify, unverify, activate, suspend, or delete',
+      });
+    }
+
+    let updateData = {};
+    let message = '';
+
+    switch (operation) {
+      case 'verify':
+        updateData = { verified: true };
+        message = 'Users verified successfully';
+        break;
+      case 'unverify':
+        updateData = { verified: false };
+        message = 'Users unverified successfully';
+        break;
+      case 'activate':
+        updateData = { active: true };
+        message = 'Users activated successfully';
+        break;
+      case 'suspend':
+        updateData = { active: false };
+        message = 'Users suspended successfully';
+        break;
+      case 'delete':
+        updateData = { active: false };
+        message = 'Users deleted successfully';
+        break;
+    }
+
+    const result = await prisma.user.updateMany({
+      where: {
+        id: { in: userIds },
+      },
+      data: updateData,
+    });
+
+    res.json({
+      message,
+      affected: result.count,
+    });
+  } catch (error) {
+    console.error('Error performing bulk operation:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to perform bulk operation',
+    });
+  }
+});
+
+// Get user details with full information
+router.get('/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        listings: {
+          include: {
+            _count: {
+              select: { orders: true },
+            },
+          },
+        },
+        orders: {
+          include: {
+            listing: {
+              select: {
+                grade: true,
+                farmer: { select: { name: true } },
+              },
+            },
+          },
+        },
+        walletTransactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+        notifications: {
+          where: { read: false },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+        _count: {
+          select: {
+            listings: true,
+            orders: true,
+            walletTransactions: true,
+            notifications: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'User not found',
+      });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch user details',
+    });
+  }
+});
+
 export default router;

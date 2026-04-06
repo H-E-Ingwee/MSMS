@@ -3,7 +3,9 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { 
   ShieldAlert, Users, Database, Activity, MapPin, 
   Phone, User, ShoppingCart, Wallet, Leaf, AlertCircle,
-  CheckCircle, XCircle, Clock
+  CheckCircle, XCircle, Clock, Edit, Trash2, Eye,
+  UserCheck, UserX, Crown, Ban, Check, MoreVertical,
+  Download, Search, Filter
 } from 'lucide-react';
 import { getAdminStats, getAdminUsers, downloadAdminReport } from '../services/api';
 
@@ -13,43 +15,62 @@ export default function AdminDashboardPage() {
   const [users, setUsers] = useState([]);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [userDetailsModal, setUserDetailsModal] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const loadAdminData = async () => {
-      try {
-        setLoading(true);
-        const statsData = await getAdminStats();
-        setStats(statsData);
-
-        const usersData = await getAdminUsers(1, 10);
-        setUsers(usersData.users || []);
-
-        // Load pending orders for approval
-        const ordersResponse = await fetch('http://localhost:3001/api/orders?status=PENDING_APPROVAL', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-          },
-        });
-        const ordersData = await ordersResponse.json();
-        setPendingOrders(ordersData.orders || []);
-      } catch (error) {
-        console.error('Error loading admin data:', error);
-        // Fallback data
-        setStats({
-          users: { total: 0, farmers: 0, buyers: 0, admins: 0, verified: 0, unverified: 0 },
-          listings: { total: 0, active: 0, inactive: 0 },
-          orders: { total: 0, completed: 0, pending: 0 },
-          revenue: 0,
-        });
-        setUsers([]);
-        setPendingOrders([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadAdminData();
-  }, []);
+  }, [currentPage, roleFilter, statusFilter]);
+
+  const loadAdminData = async () => {
+    try {
+      setLoading(true);
+      const statsData = await getAdminStats();
+      setStats(statsData);
+
+      // Build query parameters for users
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: 20,
+      });
+
+      const usersResponse = await fetch(`http://localhost:3001/api/admin/users?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+      });
+      const usersData = await usersResponse.json();
+      setUsers(usersData.users || []);
+      setTotalPages(Math.ceil((usersData.pagination?.total || 0) / 20));
+
+      // Load pending orders for approval
+      const ordersResponse = await fetch('http://localhost:3001/api/orders?status=PENDING_APPROVAL', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+      });
+      const ordersData = await ordersResponse.json();
+      setPendingOrders(ordersData.orders || []);
+    } catch (error) {
+      console.error('Error loading admin data:', error);
+      // Fallback data
+      setStats({
+        users: { total: 0, farmers: 0, buyers: 0, admins: 0, verified: 0, unverified: 0 },
+        listings: { total: 0, active: 0, inactive: 0 },
+        orders: { total: 0, completed: 0, pending: 0 },
+        revenue: 0,
+      });
+      setUsers([]);
+      setPendingOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDownloadAdminReport = async (reportType) => {
     try {
@@ -98,6 +119,170 @@ export default function AdminDashboardPage() {
       alert('Failed to process order approval');
     }
   };
+
+  // Member management functions
+  const handleUserVerification = async (userId, verified) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}/verify`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify({ verified }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user verification');
+      }
+
+      alert(`User ${verified ? 'verified' : 'unverified'} successfully!`);
+      loadAdminData();
+    } catch (error) {
+      console.error('Error updating user verification:', error);
+      alert('Failed to update user verification');
+    }
+  };
+
+  const handleUserRoleChange = async (userId, newRole) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user role');
+      }
+
+      alert(`User role updated to ${newRole} successfully!`);
+      loadAdminData();
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      alert('Failed to update user role');
+    }
+  };
+
+  const handleUserStatusChange = async (userId, active) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify({ active }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user status');
+      }
+
+      alert(`User account ${active ? 'activated' : 'suspended'} successfully!`);
+      loadAdminData();
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      alert('Failed to update user status');
+    }
+  };
+
+  const handleUserDeletion = async (userId) => {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      alert('User deleted successfully!');
+      loadAdminData();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Failed to delete user');
+    }
+  };
+
+  const handleBulkOperation = async (operation) => {
+    if (selectedUsers.length === 0) {
+      alert('Please select users first');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to ${operation} ${selectedUsers.length} user(s)?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3001/api/admin/users/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+        body: JSON.stringify({
+          operation,
+          userIds: selectedUsers,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to perform bulk operation');
+      }
+
+      const result = await response.json();
+      alert(`${result.message} (${result.affected} users affected)`);
+      setSelectedUsers([]);
+      loadAdminData();
+    } catch (error) {
+      console.error('Error performing bulk operation:', error);
+      alert('Failed to perform bulk operation');
+    }
+  };
+
+  const handleViewUserDetails = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user details');
+      }
+
+      const data = await response.json();
+      setUserDetailsModal(data.user);
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      alert('Failed to fetch user details');
+    }
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.phone.includes(searchTerm) ||
+                         user.location?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'ALL' || user.role === roleFilter;
+    const matchesStatus = statusFilter === 'ALL' ||
+                         (statusFilter === 'VERIFIED' && user.verified) ||
+                         (statusFilter === 'UNVERIFIED' && !user.verified);
+
+    return matchesSearch && matchesRole && matchesStatus;
+  });
 
   if (loading) {
     return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
@@ -279,54 +464,205 @@ export default function AdminDashboardPage() {
 
       {/* Tables Section */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* User Management */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 xl:col-span-2">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-black text-gray-800 text-lg">Verification Queue</h3>
+      {/* User Management */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 xl:col-span-2">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-black text-gray-800 text-lg">Member Management</h3>
+          <div className="flex gap-2">
+            {selectedUsers.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleBulkOperation('verify')}
+                  className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+                >
+                  Verify Selected
+                </button>
+                <button
+                  onClick={() => handleBulkOperation('suspend')}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+                >
+                  Suspend Selected
+                </button>
+              </div>
+            )}
             <button className="text-sm font-bold text-emerald-600 hover:text-emerald-800">View All</button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead>
-                <tr className="border-b-2 border-gray-100 text-gray-400 uppercase tracking-wider text-xs">
-                  <th className="pb-4 font-bold">User Name</th>
-                  <th className="pb-4 font-bold">Role</th>
-                  <th className="pb-4 font-bold">Location</th>
-                  <th className="pb-4 font-bold">Status</th>
-                  <th className="pb-4 font-bold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {users.slice(0, 4).map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-4 font-bold text-gray-800">{user.name}</td>
-                    <td className="py-4 text-gray-600 font-medium">{user.role}</td>
-                    <td className="py-4 text-gray-600">{user.location || 'N/A'}</td>
-                    <td className="py-4">
-                      <span className={`px-3 py-1.5 rounded-lg text-xs font-black ${
-                        user.verified ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
-                      }`}>
-                        {user.verified ? 'Verified' : 'Pending'}
-                      </span>
-                    </td>
-                    <td className="py-4 text-right">
-                      <button className="px-4 py-2 bg-gray-900 text-white rounded-lg font-bold text-xs hover:bg-black transition-colors">
-                        Review
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="py-8 text-center text-gray-500">
-                      No users found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
+
+        {/* Search and Filters */}
+        <div className="flex flex-wrap gap-4 mb-6">
+          <div className="flex-1 min-w-64">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search users by name, phone, or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          >
+            <option value="ALL">All Roles</option>
+            <option value="FARMER">Farmers</option>
+            <option value="BUYER">Buyers</option>
+            <option value="ADMIN">Admins</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          >
+            <option value="ALL">All Status</option>
+            <option value="VERIFIED">Verified</option>
+            <option value="UNVERIFIED">Unverified</option>
+          </select>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead>
+              <tr className="border-b-2 border-gray-100 text-gray-400 uppercase tracking-wider text-xs">
+                <th className="pb-4 font-bold">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedUsers(filteredUsers.map(u => u.id));
+                      } else {
+                        setSelectedUsers([]);
+                      }
+                    }}
+                    className="rounded border-gray-300"
+                  />
+                </th>
+                <th className="pb-4 font-bold">User Name</th>
+                <th className="pb-4 font-bold">Role</th>
+                <th className="pb-4 font-bold">Location</th>
+                <th className="pb-4 font-bold">Status</th>
+                <th className="pb-4 font-bold">Activity</th>
+                <th className="pb-4 font-bold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filteredUsers.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.includes(user.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedUsers([...selectedUsers, user.id]);
+                        } else {
+                          setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                  </td>
+                  <td className="py-4 font-bold text-gray-800">{user.name}</td>
+                  <td className="py-4">
+                    <select
+                      value={user.role}
+                      onChange={(e) => handleUserRoleChange(user.id, e.target.value)}
+                      className="px-2 py-1 border border-gray-300 rounded text-xs font-medium"
+                    >
+                      <option value="FARMER">Farmer</option>
+                      <option value="BUYER">Buyer</option>
+                      <option value="ADMIN">Admin</option>
+                    </select>
+                  </td>
+                  <td className="py-4 text-gray-600">{user.location || 'N/A'}</td>
+                  <td className="py-4">
+                    <span className={`px-3 py-1.5 rounded-lg text-xs font-black ${
+                      user.verified ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {user.verified ? 'Verified' : 'Pending'}
+                    </span>
+                  </td>
+                  <td className="py-4 text-gray-600 text-xs">
+                    <div>{user._count.listings} listings</div>
+                    <div>{user._count.orders} orders</div>
+                  </td>
+                  <td className="py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => handleViewUserDetails(user.id)}
+                        className="p-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg"
+                        title="View Details"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleUserVerification(user.id, !user.verified)}
+                        className={`p-1.5 rounded-lg ${
+                          user.verified
+                            ? 'bg-orange-100 hover:bg-orange-200 text-orange-700'
+                            : 'bg-green-100 hover:bg-green-200 text-green-700'
+                        }`}
+                        title={user.verified ? 'Unverify' : 'Verify'}
+                      >
+                        {user.verified ? <UserX size={14} /> : <UserCheck size={14} />}
+                      </button>
+                      <button
+                        onClick={() => handleUserStatusChange(user.id, false)}
+                        className="p-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg"
+                        title="Suspend"
+                      >
+                        <Ban size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleUserDeletion(user.id)}
+                        className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredUsers.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
+                    No users found matching your criteria
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-6 gap-2">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
 
         {/* Activity Log */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col">
@@ -359,4 +695,131 @@ export default function AdminDashboardPage() {
       </div>
     </div>
   );
-}
+
+  // User Details Modal
+  if (userDetailsModal) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-gray-800">User Details</h3>
+            <button
+              onClick={() => setUserDetailsModal(null)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Basic Info */}
+            <div className="bg-gray-50 p-4 rounded-xl">
+              <h4 className="font-bold text-gray-800 mb-3">Basic Information</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Name:</span>
+                  <span className="font-medium">{userDetailsModal.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Phone:</span>
+                  <span className="font-medium">{userDetailsModal.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Role:</span>
+                  <span className="font-medium">{userDetailsModal.role}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Location:</span>
+                  <span className="font-medium">{userDetailsModal.location || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Verified:</span>
+                  <span className={`font-medium ${userDetailsModal.verified ? 'text-green-600' : 'text-red-600'}`}>
+                    {userDetailsModal.verified ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Joined:</span>
+                  <span className="font-medium">{new Date(userDetailsModal.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Statistics */}
+            <div className="bg-gray-50 p-4 rounded-xl">
+              <h4 className="font-bold text-gray-800 mb-3">Activity Statistics</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Listings:</span>
+                  <span className="font-medium">{userDetailsModal._count.listings}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Orders:</span>
+                  <span className="font-medium">{userDetailsModal._count.orders}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Transactions:</span>
+                  <span className="font-medium">{userDetailsModal._count.walletTransactions}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Notifications:</span>
+                  <span className="font-medium">{userDetailsModal._count.notifications}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Listings */}
+            {userDetailsModal.listings && userDetailsModal.listings.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
+                <h4 className="font-bold text-gray-800 mb-3">Recent Listings</h4>
+                <div className="space-y-2">
+                  {userDetailsModal.listings.slice(0, 3).map((listing) => (
+                    <div key={listing.id} className="flex justify-between items-center p-2 bg-white rounded">
+                      <div>
+                        <span className="font-medium">{listing.grade}</span>
+                        <span className="text-gray-500 text-sm ml-2">
+                          {listing.quantity}kg • KES {listing.price}/kg
+                        </span>
+                      </div>
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        listing.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {listing.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent Transactions */}
+            {userDetailsModal.walletTransactions && userDetailsModal.walletTransactions.length > 0 && (
+              <div className="bg-gray-50 p-4 rounded-xl md:col-span-2">
+                <h4 className="font-bold text-gray-800 mb-3">Recent Transactions</h4>
+                <div className="space-y-2">
+                  {userDetailsModal.walletTransactions.slice(0, 5).map((tx) => (
+                    <div key={tx.id} className="flex justify-between items-center p-2 bg-white rounded">
+                      <div>
+                        <span className="font-medium">{tx.description}</span>
+                        <span className="text-gray-500 text-sm ml-2">
+                          {new Date(tx.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <span className={`font-medium ${
+                        tx.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {tx.type === 'CREDIT' ? '+' : '-'}KES {tx.amount.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto p-4 md:p-8">
