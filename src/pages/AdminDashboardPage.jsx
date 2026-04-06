@@ -9,6 +9,7 @@ import { getAdminStats, getAdminUsers, downloadAdminReport } from '../services/a
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,19 +39,9 @@ export default function AdminDashboardPage() {
     loadAdminData();
   }, []);
 
-  const downloadAdminReport = async (reportType) => {
+  const handleDownloadAdminReport = async (reportType) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/reports/${reportType}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download report');
-      }
-
-      const blob = await response.blob();
+      const blob = await downloadAdminReport(reportType);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -145,21 +136,21 @@ export default function AdminDashboardPage() {
         <h3 className="font-black text-gray-800 text-lg mb-4">Download Reports</h3>
         <div className="flex flex-wrap gap-4">
           <button 
-            onClick={() => downloadAdminReport('users')}
+            onClick={() => handleDownloadAdminReport('users')}
             className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <Users size={16} />
             Users Report
           </button>
           <button 
-            onClick={() => downloadAdminReport('transactions')}
+            onClick={() => handleDownloadAdminReport('transactions')}
             className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors flex items-center gap-2"
           >
             <Wallet size={16} />
             Transactions Report
           </button>
           <button 
-            onClick={() => downloadAdminReport('listings')}
+            onClick={() => handleDownloadAdminReport('listings')}
             className="px-6 py-3 bg-orange-600 text-white rounded-xl font-bold text-sm hover:bg-orange-700 transition-colors flex items-center gap-2"
           >
             <ShoppingCart size={16} />
