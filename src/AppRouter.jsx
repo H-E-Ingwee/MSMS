@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { Leaf, TrendingUp, ShoppingCart, BookOpen, Wallet, User, Settings, X, Package } from 'lucide-react';
+import { Leaf, TrendingUp, ShoppingCart, BookOpen, Wallet, User, Settings, X, Package, PlusCircle } from 'lucide-react';
 import DashboardPage from './pages/DashboardPage';
 import MarketplacePage from './pages/MarketplacePage';
 import OrdersPage from './pages/OrdersPage';

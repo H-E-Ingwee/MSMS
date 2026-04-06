@@ -102,6 +102,11 @@ export const createOrder = async order => {
   return response.order || response;
 };
 
+// Predictive API functions
+export const getPredictions = async () => {
+  return await apiCall('/predictive/forecast');
+};
+
 // Admin API functions
 export const getAdminStats = async () => {
   return await apiCall('/admin/stats');

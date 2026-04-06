@@ -5,6 +5,7 @@ import {
   AreaChart, Area, ComposedChart, ReferenceLine
 } from 'recharts';
 import SectionHeading from '../components/atoms/SectionHeading.jsx';
+import { getPredictions } from '../services/api.js';
 
 export default function DashboardPage() {
   const [aiData, setAiData] = useState(null);
@@ -14,14 +15,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchPredictions = async () => {
       try {
-        // Fetch from the ML route
-        const response = await fetch('/api/predictive/forecast', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('msms_token')}` }
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch AI predictions');
-
-        const data = await response.json();
+        const data = await getPredictions();
         setAiData(data);
       } catch (err) {
         console.error(err);
