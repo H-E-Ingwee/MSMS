@@ -102,6 +102,27 @@ export const createOrder = async order => {
   return response.order || response;
 };
 
+// Admin API functions
+export const getAdminStats = async () => {
+  return await apiCall('/admin/stats');
+};
+
+export const getAdminUsers = async (page = 1, limit = 50) => {
+  return await apiCall(`/admin/users?page=${page}&limit=${limit}`);
+};
+
+export const downloadAdminReport = async (reportType) => {
+  const response = await fetch(`${API_BASE_URL}/admin/reports/${reportType}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to download report');
+  }
+
+  return response.blob();
+};
+
 export const getOrders = async () => {
   const response = await apiCall('/orders');
   return response.orders || response;

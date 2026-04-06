@@ -4,6 +4,7 @@ import {
   ShieldAlert, Users, Database, Activity, MapPin, 
   Phone, User, ShoppingCart, Wallet, Leaf, AlertCircle
 } from 'lucide-react';
+import { getAdminStats, getAdminUsers, downloadAdminReport } from '../services/api';
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -13,24 +14,22 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const loadAdminData = async () => {
       try {
-        const response = await fetch('/api/admin/stats', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('msms_token')}` }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data);
-        } else {
-          throw new Error('API unavailable, falling back to mock data');
-        }
+        setLoading(true);
+        const statsData = await getAdminStats();
+        setStats(statsData);
+
+        const usersData = await getAdminUsers(1, 10);
+        setUsers(usersData.users || []);
       } catch (error) {
-        // Fallback data for Vercel seamless demonstration
+        console.error('Error loading admin data:', error);
+        // Fallback data
         setStats({
-          users: { total: 1245, verified: 1100, pending: 145 },
-          listings: { active: 84 },
-          revenue: 842500,
-          health: '99.9%'
+          users: { total: 0, farmers: 0, buyers: 0, admins: 0, verified: 0, unverified: 0 },
+          listings: { total: 0, active: 0, inactive: 0 },
+          orders: { total: 0, completed: 0, pending: 0 },
+          revenue: 0,
         });
+        setUsers([]);
       } finally {
         setLoading(false);
       }
@@ -38,6 +37,33 @@ export default function AdminDashboardPage() {
 
     loadAdminData();
   }, []);
+
+  const downloadAdminReport = async (reportType) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/reports/${reportType}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download report');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${reportType}_report.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      alert('Error downloading report');
+    }
+  };
 
   if (loading) {
     return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
@@ -114,6 +140,34 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Download Reports */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+        <h3 className="font-black text-gray-800 text-lg mb-4">Download Reports</h3>
+        <div className="flex flex-wrap gap-4">
+          <button 
+            onClick={() => downloadAdminReport('users')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <Users size={16} />
+            Users Report
+          </button>
+          <button 
+            onClick={() => downloadAdminReport('transactions')}
+            className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors flex items-center gap-2"
+          >
+            <Wallet size={16} />
+            Transactions Report
+          </button>
+          <button 
+            onClick={() => downloadAdminReport('listings')}
+            className="px-6 py-3 bg-orange-600 text-white rounded-xl font-bold text-sm hover:bg-orange-700 transition-colors flex items-center gap-2"
+          >
+            <ShoppingCart size={16} />
+            Listings Report
+          </button>
+        </div>
+      </div>
+
       {/* Tables Section */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* User Management */}
@@ -134,22 +188,16 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {[
-                  { name: 'David M.', role: 'Farmer', loc: 'Meru North', status: 'Pending' },
-                  { name: 'Agnes K.', role: 'Buyer', loc: 'Nairobi', status: 'Pending' },
-                  { name: 'Peter W.', role: 'Farmer', loc: 'Embu', status: 'Verified' },
-                  { name: 'Simon J.', role: 'Farmer', loc: 'Igembe', status: 'Suspended' },
-                ].map((u, i) => (
-                  <tr key={i} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-4 font-bold text-gray-800">{u.name}</td>
-                    <td className="py-4 text-gray-600 font-medium">{u.role}</td>
-                    <td className="py-4 text-gray-600">{u.loc}</td>
+                {users.slice(0, 4).map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="py-4 font-bold text-gray-800">{user.name}</td>
+                    <td className="py-4 text-gray-600 font-medium">{user.role}</td>
+                    <td className="py-4 text-gray-600">{user.location || 'N/A'}</td>
                     <td className="py-4">
                       <span className={`px-3 py-1.5 rounded-lg text-xs font-black ${
-                        u.status === 'Verified' ? 'bg-emerald-100 text-emerald-700' : 
-                        u.status === 'Suspended' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                        user.verified ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
                       }`}>
-                        {u.status}
+                        {user.verified ? 'Verified' : 'Pending'}
                       </span>
                     </td>
                     <td className="py-4 text-right">
@@ -159,6 +207,13 @@ export default function AdminDashboardPage() {
                     </td>
                   </tr>
                 ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="py-8 text-center text-gray-500">
+                      No users found
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
