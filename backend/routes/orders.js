@@ -135,11 +135,15 @@ router.post('/', [
   authenticateToken,
   body('listingId').isString().notEmpty(),
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
-  body('deliveryAddress').optional().trim().isLength({ min: 5, max: 200 }),
+  body('deliveryAddress').optional().isString().trim(),
 ], async (req, res) => {
   try {
+    console.log('Order creation request:', req.body); // Debug log
+    console.log('User:', req.user); // Debug log
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array()); // Debug log
       return res.status(400).json({
         error: 'Validation Error',
         message: 'Invalid input data',
@@ -149,13 +153,18 @@ router.post('/', [
 
     const { listingId, quantity, deliveryAddress } = req.body;
 
+    console.log('Parsed request data:', { listingId, quantity, deliveryAddress, userId: req.user.id });
+
     // Check if listing exists and is active
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
       include: { farmer: true },
     });
 
+    console.log('Found listing:', listing ? { id: listing.id, status: listing.status, farmerId: listing.farmerId } : 'null');
+
     if (!listing || listing.status !== 'ACTIVE') {
+      console.log('Listing not found or not active');
       return res.status(404).json({
         error: 'Not Found',
         message: 'Listing not found or no longer available',
