@@ -347,9 +347,9 @@ router.put('/:id/approve', [
         data: {
           userId: order.buyerId,
           type: approved ? 'ORDER_APPROVED' : 'ORDER_REJECTED',
-          title: approved ? 'Order Approved' : 'Order Rejected',
+          title: approved ? 'Order Approved - Ready for Payment' : 'Order Rejected',
           message: approved
-            ? `Your order for ${order.quantity}kg ${order.listing.grade} has been approved by admin. You can now proceed with payment.`
+            ? `Your order for ${order.quantity}kg ${order.listing.grade} has been approved! Please proceed with payment through the orders page to complete your purchase.`
             : `Your order for ${order.quantity}kg ${order.listing.grade} has been rejected by admin. ${farmerNotes || ''}`,
           orderId: order.id,
         },

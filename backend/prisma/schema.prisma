@@ -63,6 +63,9 @@ model Order {
   status      String   @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, PENDING_PAYMENT, PAID, SHIPPED, DELIVERED, CANCELLED
   deliveryAddress String?
   farmerNotes String?
+  paymentMethod String?  // MPESA, CARD, etc.
+  mpesaReceiptNumber String?  // M-Pesa transaction receipt
+  paidAt      DateTime? // When payment was completed
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

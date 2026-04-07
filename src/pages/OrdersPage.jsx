@@ -132,21 +132,23 @@ export default function OrdersPage() {
         },
         body: JSON.stringify({
           paymentMethod: 'MPESA',
-          phoneNumber: '254712345678', // This should come from user profile
+          phoneNumber: user.phone.replace('+', ''), // Remove + prefix for M-Pesa
           amount: order.totalPrice,
         }),
       });
 
       if (!paymentResult.ok) {
-        throw new Error('Payment failed');
+        const errorData = await paymentResult.json();
+        throw new Error(errorData.message || 'Payment failed');
       }
 
+      const paymentData = await paymentResult.json();
       alert(`Payment initiated! Check your phone for M-Pesa prompt. Total: KES ${order.totalPrice}`);
       loadOrders(); // Refresh orders
 
     } catch (error) {
       console.error('Payment failed:', error);
-      alert('Payment failed. Please try again.');
+      alert(`Payment failed: ${error.message}`);
     }
   };
 

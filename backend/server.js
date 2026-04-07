@@ -23,6 +23,7 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5174';
 
 // Rate limiting
 const limiter = rateLimit({
@@ -37,6 +38,8 @@ app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
       'http://localhost:5173', // Local development
+      'http://localhost:5174', // Local Vite dev server
+      process.env.FRONTEND_URL || 'http://localhost:5174',
       'https://miraalink.vercel.app', // Production frontend
       'https://msms-frontend.vercel.app', // Alternative production URL
       /^https:\/\/.*\.vercel\.app$/, // Any Vercel app
@@ -140,7 +143,7 @@ process.on('SIGINT', async () => {
 app.listen(PORT, () => {
   console.log(`🚀 MSMS Backend server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+  console.log(`🔗 Frontend URL: ${FRONTEND_URL}`);
 });
 
 // Export for testing

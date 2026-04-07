@@ -81,6 +81,7 @@ router.post('/intasend/callback', express.json(), async (req, res) => {
             status: 'PAID',
             paymentMethod: 'MPESA',
             mpesaReceiptNumber: mpesa_receipt_number,
+            paidAt: new Date(),
           },
         });
 
