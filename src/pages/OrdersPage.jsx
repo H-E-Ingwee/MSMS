@@ -176,7 +176,7 @@ export default function OrdersPage() {
             onClick={() => handlePayOrder(order)}
             className="px-3 py-1.5 text-sm"
           >
-            Pay Now
+            Pay Now with M-Pesa
           </PrimaryButton>
         </div>
       );
@@ -255,6 +255,16 @@ export default function OrdersPage() {
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                     {order.status.replace('_', ' ')}
                   </span>
+                  {order.mpesaReceiptNumber && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Receipt: {order.mpesaReceiptNumber}
+                    </p>
+                  )}
+                  {order.paidAt && (
+                    <p className="text-xs text-gray-500">
+                      Paid: {new Date(order.paidAt).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
               </div>
 
