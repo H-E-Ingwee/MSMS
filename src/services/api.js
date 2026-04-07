@@ -116,6 +116,43 @@ export const getAdminUsers = async (page = 1, limit = 50) => {
   return await apiCall(`/admin/users?page=${page}&limit=${limit}`);
 };
 
+export const getAdminListings = async (page = 1, limit = 20, status = 'ALL') => {
+  const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+  if (status !== 'ALL') params.append('status', status);
+  return await apiCall(`/admin/listings?${params}`);
+};
+
+export const updateListingStatus = async (listingId, status, notes = '') => {
+  return await apiCall(`/admin/listings/${listingId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status, notes }),
+  });
+};
+
+export const getAdminTrainingModules = async () => {
+  return await apiCall('/admin/training');
+};
+
+export const createTrainingModule = async (moduleData) => {
+  return await apiCall('/admin/training', {
+    method: 'POST',
+    body: JSON.stringify(moduleData),
+  });
+};
+
+export const updateTrainingModule = async (moduleId, moduleData) => {
+  return await apiCall(`/admin/training/${moduleId}`, {
+    method: 'PUT',
+    body: JSON.stringify(moduleData),
+  });
+};
+
+export const deleteTrainingModule = async (moduleId) => {
+  return await apiCall(`/admin/training/${moduleId}`, {
+    method: 'DELETE',
+  });
+};
+
 export const downloadAdminReport = async (reportType) => {
   const response = await fetch(`${API_BASE_URL}/admin/reports/${reportType}`, {
     headers: getAuthHeaders(),

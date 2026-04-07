@@ -25,6 +25,9 @@ router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
 
     const [users, totalCount] = await Promise.all([
       prisma.user.findMany({
+        where: {
+          active: true, // Only show active users
+        },
         select: {
           id: true,
           name: true,
@@ -32,6 +35,7 @@ router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
           role: true,
           location: true,
           verified: true,
+          active: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -46,7 +50,11 @@ router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
         skip: offset,
         take: limit,
       }),
-      prisma.user.count(),
+      prisma.user.count({
+        where: {
+          active: true,
+        },
+      }),
     ]);
 
     res.json({
