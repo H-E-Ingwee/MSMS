@@ -288,7 +288,17 @@ router.put('/:id/approve', [
     }
 
     // Only the listing owner or an admin can approve/reject the order
+    console.log('Order approval check:', {
+      userId: req.user.id,
+      userRole: req.user.role,
+      listingFarmerId: order.listing.farmerId,
+      orderId: id,
+      isAdmin: req.user.role === 'ADMIN',
+      isListingOwner: req.user.id === order.listing.farmerId
+    });
+
     if (req.user.role !== 'ADMIN' && req.user.id !== order.listing.farmerId) {
+      console.log('Order approval denied - user not authorized');
       return res.status(403).json({
         error: 'Forbidden',
         message: 'Only the seller can approve or reject this order',

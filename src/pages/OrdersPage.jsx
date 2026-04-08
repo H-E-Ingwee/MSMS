@@ -153,10 +153,24 @@ export default function OrdersPage() {
   };
 
   const getActionButtons = (order) => {
-    const isFarmer = user?.role === 'FARMER' && order.listing.farmerId === user.id;
+    const isFarmer = user?.role === 'FARMER' && order.listing?.farmerId === user.id;
     const isBuyer = user?.role === 'BUYER' && order.buyerId === user.id;
+    const isAdmin = user?.role === 'ADMIN';
 
-    if (isFarmer && order.status === 'PENDING_APPROVAL') {
+    // Debug logging
+    console.log('Order action check:', {
+      orderId: order.id,
+      userRole: user?.role,
+      userId: user?.id,
+      listingFarmerId: order.listing?.farmerId,
+      buyerId: order.buyerId,
+      orderStatus: order.status,
+      isFarmer,
+      isBuyer,
+      isAdmin
+    });
+
+    if ((isFarmer || isAdmin) && order.status === 'PENDING_APPROVAL') {
       return (
         <div className="flex gap-2">
           <button
