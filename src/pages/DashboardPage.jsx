@@ -61,8 +61,8 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-emerald-600 mb-4"></div>
-        <p className="text-gray-500 font-bold animate-pulse">AI is analyzing historical market data...</p>
-        <p className="text-sm text-gray-400 mt-2">Training advanced ML models with Prophet and ARIMA</p>
+        <p className="text-gray-500 font-bold animate-pulse">Analyzing market patterns...</p>
+        <p className="text-sm text-gray-400 mt-2">Using smart computer programs to predict miraa prices</p>
       </div>
     );
   }
@@ -85,14 +85,34 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <SectionHeading title="Predictive Intelligence" subtitle="AI-driven forecasts using advanced ML models (Prophet + ARIMA)." />
+      <SectionHeading 
+        title="Smart Price Predictions" 
+        subtitle="AI helps you understand future miraa prices based on market patterns. This helps farmers decide when to harvest and sell." 
+      />
+
+      {/* Educational Info Box */}
+      <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl p-4">
+        <h4 className="font-bold mb-2 flex items-center gap-2">
+          <Activity size={20} />
+          How to Use This Dashboard
+        </h4>
+        <ul className="text-sm space-y-1">
+          <li>• <strong>Current Price:</strong> Today's average market price per kg</li>
+          <li>• <strong>Predictions:</strong> What prices might be in the coming days</li>
+          <li>• <strong>Demand:</strong> How much miraa buyers might want to buy</li>
+          <li>• <strong>AI Advice:</strong> Suggestions on when to harvest based on price trends</li>
+        </ul>
+        <p className="text-xs mt-2 text-blue-600">
+          Note: These are wholesale predictions. Marketplace prices may vary based on quality and location.
+        </p>
+      </div>
 
       {error && (
         <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-2xl p-4 flex items-start gap-3">
           <AlertCircle size={24} className="mt-1" />
           <div>
             <p className="font-semibold">{error}</p>
-            <p className="text-sm text-yellow-600">Live ML predictions are unavailable right now, so a local fallback forecast is shown.</p>
+            <p className="text-sm text-yellow-600">Showing sample predictions when live data isn't available.</p>
           </div>
         </div>
       )}
@@ -100,24 +120,24 @@ export default function DashboardPage() {
       {/* Enhanced KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Current Avg Price</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Today's Market Price</p>
           <h3 className="text-2xl md:text-3xl font-black text-gray-800">KES {aiData?.currentAvgPrice?.toLocaleString()}</h3>
           <p className={`text-xs flex items-center mt-2 font-bold w-fit px-2 py-1 rounded-md ${
             aiData?.priceTrend === 'rising' ? 'text-emerald-600 bg-emerald-50' :
             aiData?.priceTrend === 'falling' ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'
           }`}>
             <TrendingUp size={12} className={`mr-1 ${aiData?.priceTrend !== 'rising' ? 'rotate-180' : ''}`} />
-            Trend is {aiData?.priceTrend}
+            Prices are {aiData?.priceTrend}
           </p>
         </div>
 
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">7-Day Peak Forecast</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Best Price This Week</p>
           <h3 className="text-2xl md:text-3xl font-black text-blue-600">
             KES {Math.max(...(aiData?.forecast?.map(f => f.predictedPrice) || [0]))?.toLocaleString()}
           </h3>
           <p className="text-xs text-blue-600 flex items-center gap-1 mt-2 font-bold bg-blue-50 w-fit px-2 py-1 rounded-md">
-            <Calendar size={12} /> Expected later this week
+            <Calendar size={12} /> Coming soon
           </p>
         </div>
 
@@ -130,18 +150,19 @@ export default function DashboardPage() {
           </h3>
           <p className="text-xs text-gray-500 font-bold mt-2 bg-gray-50 w-fit px-2 py-1 rounded-md">
             <Activity size={12} className="inline mr-1" />
-            {aiData?.analysis?.confidence} confidence
+            {aiData?.analysis?.confidence === 'high' ? 'Very reliable' : 
+             aiData?.analysis?.confidence === 'medium' ? 'Fairly reliable' : 'Less certain'}
           </p>
         </div>
 
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Avg Future Price</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Average Next Week</p>
           <h3 className="text-2xl md:text-3xl font-black text-purple-600">
             KES {aiData?.analysis?.avg_future_price?.toLocaleString()}
           </h3>
           <p className="text-xs text-purple-600 font-bold mt-2 bg-purple-50 w-fit px-2 py-1 rounded-md">
             <Target size={12} className="inline mr-1" />
-            ML Prediction
+            AI Prediction
           </p>
         </div>
       </div>
@@ -154,15 +175,43 @@ export default function DashboardPage() {
         <div className="relative z-10">
           <h3 className="text-xl font-black mb-3 flex items-center gap-2">
             <Activity size={24} />
-            AI Recommendation
+            Smart Farming Advice
           </h3>
-          <p className="text-emerald-100 text-lg leading-relaxed">{aiData?.recommendation}</p>
+          <p className="text-emerald-100 text-lg leading-relaxed mb-4">{aiData?.recommendation}</p>
+          
+          {/* Actionable Tips */}
+          <div className="bg-white/10 rounded-xl p-4 mb-4">
+            <h4 className="font-bold mb-2">💡 What This Means for You:</h4>
+            <ul className="text-sm space-y-1 text-emerald-100">
+              {aiData?.priceTrend === 'rising' ? (
+                <>
+                  <li>• Wait 2-3 days before harvesting to get higher prices</li>
+                  <li>• Store your miraa properly to maintain quality</li>
+                  <li>• Check prices daily in the marketplace</li>
+                </>
+              ) : aiData?.priceTrend === 'falling' ? (
+                <>
+                  <li>• Harvest and sell soon to avoid price drops</li>
+                  <li>• Consider selling to regular buyers first</li>
+                  <li>• Look for buyers willing to pay current prices</li>
+                </>
+              ) : (
+                <>
+                  <li>• Market is stable - harvest when ready</li>
+                  <li>• Focus on quality to get better prices</li>
+                  <li>• Build relationships with good buyers</li>
+                </>
+              )}
+            </ul>
+          </div>
+
           <div className="mt-4 flex items-center gap-4 text-sm">
             <span className="bg-white/20 px-3 py-1 rounded-full">
-              Model: Prophet + ARIMA
+              Based on market patterns
             </span>
             <span className="bg-white/20 px-3 py-1 rounded-full">
-              Confidence: {aiData?.analysis?.confidence}
+              {aiData?.analysis?.confidence === 'high' ? 'Very reliable' : 
+               aiData?.analysis?.confidence === 'medium' ? 'Fairly reliable' : 'Keep watching'}
             </span>
           </div>
         </div>
@@ -174,8 +223,12 @@ export default function DashboardPage() {
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <h3 className="font-black text-gray-800 text-lg mb-4 flex items-center gap-2">
             <TrendingUp size={20} className="text-blue-500" />
-            Price Forecast (30 Days)
+            Price Trends: Past & Future
           </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            This chart shows what prices were in the past (green line) and what they might be in the future (blue dashed line). 
+            The shaded area shows the possible price range - prices could be higher or lower than predicted.
+          </p>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={priceChartData}>
@@ -188,6 +241,12 @@ export default function DashboardPage() {
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
                   }}
+                  formatter={(value, name) => [
+                    name === 'actual' ? `KES ${value?.toLocaleString()}` : 
+                    name === 'predicted' ? `KES ${value?.toLocaleString()}` : value,
+                    name === 'actual' ? 'Actual Price' : 
+                    name === 'predicted' ? 'Predicted Price' : name
+                  ]}
                 />
                 <Legend />
                 <Area
@@ -228,7 +287,7 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Green: Actual prices | Blue: ML predictions | Shaded: Confidence interval
+            Green: What prices actually were | Blue: What prices might be | Shaded: Possible price range
           </p>
         </div>
 
@@ -236,8 +295,12 @@ export default function DashboardPage() {
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <h3 className="font-black text-gray-800 text-lg mb-4 flex items-center gap-2">
             <BarChart3 size={20} className="text-orange-500" />
-            Demand Forecast (7 Days)
+            How Much Buyers Want (Demand)
           </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            This shows how many kilograms of miraa buyers might want to buy each day. 
+            Higher demand usually means you can sell more, but prices might not always be higher.
+          </p>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={demandChartData}>
@@ -252,7 +315,7 @@ export default function DashboardPage() {
                   }}
                   formatter={(value, name) => [
                     name === 'demand' ? `${value.toLocaleString()} kg` : `KES ${value.toLocaleString()}`,
-                    name === 'demand' ? 'Demand Volume' : 'Price'
+                    name === 'demand' ? 'Expected Demand' : 'Price'
                   ]}
                 />
                 <Legend />
@@ -261,23 +324,26 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Weekly demand predictions based on historical patterns
+            Higher bars mean more buyers looking to purchase miraa that day
           </p>
         </div>
       </div>
 
       {/* Forecast Table */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-        <h3 className="font-black text-gray-800 text-lg mb-4">7-Day Forecast Details</h3>
+        <h3 className="font-black text-gray-800 text-lg mb-4">Daily Price Guide for Next Week</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          This table shows what prices might be each day. Use it to plan when to harvest and sell your miraa.
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b-2 border-gray-100 text-gray-400 uppercase tracking-wider text-xs">
                 <th className="pb-4 font-bold">Day</th>
-                <th className="pb-4 font-bold">Predicted Price</th>
-                <th className="pb-4 font-bold">Demand (kg)</th>
-                <th className="pb-4 font-bold">Confidence Range</th>
-                <th className="pb-4 font-bold">Trend</th>
+                <th className="pb-4 font-bold">Expected Price</th>
+                <th className="pb-4 font-bold">Buyer Demand</th>
+                <th className="pb-4 font-bold">Price Range</th>
+                <th className="pb-4 font-bold">Market Direction</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -286,9 +352,9 @@ export default function DashboardPage() {
                   <td className="py-4 font-bold text-gray-800">{item.day}</td>
                   <td className="py-4 text-gray-800 font-bold">
                     KES {item.predictedPrice?.toLocaleString()}
-                    {item.actualPrice && <span className="text-emerald-600 ml-2">(Actual)</span>}
+                    {item.actualPrice && <span className="text-emerald-600 ml-2">(Today's actual)</span>}
                   </td>
-                  <td className="py-4 text-gray-600">{item.demand?.toLocaleString()}</td>
+                  <td className="py-4 text-gray-600">{item.demand?.toLocaleString()} kg</td>
                   <td className="py-4 text-gray-600">
                     {item.confidence ?
                       `KES ${item.confidence.priceLower?.toLocaleString()} - ${item.confidence.priceUpper?.toLocaleString()}` :
@@ -301,8 +367,8 @@ export default function DashboardPage() {
                       item.predictedPrice < aiData.currentAvgPrice ? 'bg-red-100 text-red-700' :
                       'bg-blue-100 text-blue-700'
                     }`}>
-                      {item.predictedPrice > aiData.currentAvgPrice ? '↗ Rising' :
-                       item.predictedPrice < aiData.currentAvgPrice ? '↘ Falling' : '→ Stable'}
+                      {item.predictedPrice > aiData.currentAvgPrice ? '↗ Better than today' :
+                       item.predictedPrice < aiData.currentAvgPrice ? '↘ Worse than today' : '→ Same as today'}
                     </span>
                   </td>
                 </tr>
@@ -310,6 +376,9 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
+        <p className="text-xs text-gray-500 mt-4">
+          💡 Tip: Look for days with high demand and good prices. The price range shows the most likely prices (not guaranteed).
+        </p>
       </div>
     </div>
   );
