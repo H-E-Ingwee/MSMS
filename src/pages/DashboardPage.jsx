@@ -19,7 +19,7 @@ export default function DashboardPage() {
         setAiData(data);
       } catch (err) {
         console.error(err);
-        // Enhanced fallback mock data with more realistic ML-style predictions
+        setError('Unable to load live AI predictions. Showing fallback forecast.');
         setAiData({
           currentAvgPrice: 2280,
           priceTrend: 'rising',
@@ -49,7 +49,6 @@ export default function DashboardPage() {
             { date: '2026-04-03', actualPrice: null, actualDemand: null, predictedPrice: 2380, predictedDemand: 19650 },
           ]
         });
-        // setError('Unable to load AI predictions. Please check backend connection.');
       } finally {
         setLoading(false);
       }
@@ -68,16 +67,8 @@ export default function DashboardPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 p-6 rounded-2xl flex items-center gap-3 text-red-700 border border-red-200">
-        <AlertCircle size={24} />
-        <p className="font-bold">{error}</p>
-      </div>
-    );
-  }
-
   // Prepare chart data
+
   const priceChartData = aiData?.chartData?.map(item => ({
     date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     actual: item.actualPrice,
@@ -95,6 +86,16 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <SectionHeading title="Predictive Intelligence" subtitle="AI-driven forecasts using advanced ML models (Prophet + ARIMA)." />
+
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-2xl p-4 flex items-start gap-3">
+          <AlertCircle size={24} className="mt-1" />
+          <div>
+            <p className="font-semibold">{error}</p>
+            <p className="text-sm text-yellow-600">Live ML predictions are unavailable right now, so a local fallback forecast is shown.</p>
+          </div>
+        </div>
+      )}
 
       {/* Enhanced KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

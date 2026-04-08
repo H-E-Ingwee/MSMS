@@ -67,8 +67,7 @@ export const getCurrentUser = async () => {
 };
 
 export const getPredictiveData = async () => {
-  const response = await apiCall('/predictive');
-  return response.predictions || response;
+  return await apiCall('/predictive/forecast');
 };
 
 export const getTrainingModules = async () => {
