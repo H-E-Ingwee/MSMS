@@ -134,6 +134,7 @@ export default function DashboardPage() {
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Today's Market Price</p>
           <h3 className="text-2xl md:text-3xl font-black text-gray-800">KES {aiData?.currentAvgPrice?.toLocaleString()}</h3>
+          <p className="text-xs text-gray-500 mt-1">per kilogram</p>
           <p className={`text-xs flex items-center mt-2 font-bold w-fit px-2 py-1 rounded-md ${
             aiData?.priceTrend === 'rising' ? 'text-emerald-600 bg-emerald-50' :
             aiData?.priceTrend === 'falling' ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'
@@ -148,6 +149,7 @@ export default function DashboardPage() {
           <h3 className="text-2xl md:text-3xl font-black text-blue-600">
             KES {Math.max(...(aiData?.forecast?.map(f => f.predictedPrice) || [0]))?.toLocaleString()}
           </h3>
+          <p className="text-xs text-gray-500 mt-1">per kilogram</p>
           <p className="text-xs text-blue-600 flex items-center gap-1 mt-2 font-bold bg-blue-50 w-fit px-2 py-1 rounded-md">
             <Calendar size={12} /> Coming soon
           </p>
@@ -172,6 +174,7 @@ export default function DashboardPage() {
           <h3 className="text-2xl md:text-3xl font-black text-purple-600">
             KES {aiData?.analysis?.avg_future_price?.toLocaleString()}
           </h3>
+          <p className="text-xs text-gray-500 mt-1">per kilogram</p>
           <p className="text-xs text-purple-600 font-bold mt-2 bg-purple-50 w-fit px-2 py-1 rounded-md">
             <Target size={12} className="inline mr-1" />
             AI Prediction
@@ -257,10 +260,10 @@ export default function DashboardPage() {
                     borderRadius: '8px'
                   }}
                   formatter={(value, name) => [
-                    name === 'actual' ? `KES ${value?.toLocaleString()}` : 
-                    name === 'predicted' ? `KES ${value?.toLocaleString()}` : value,
-                    name === 'actual' ? 'Actual Price' : 
-                    name === 'predicted' ? 'Predicted Price' : name
+                    name === 'actual' ? `KES ${value?.toLocaleString()}/kg` : 
+                    name === 'predicted' ? `KES ${value?.toLocaleString()}/kg` : value,
+                    name === 'actual' ? 'Actual Price (per kg)' : 
+                    name === 'predicted' ? 'Predicted Price (per kg)' : name
                   ]}
                 />
                 <Legend />
@@ -346,19 +349,19 @@ export default function DashboardPage() {
 
       {/* Forecast Table */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-        <h3 className="font-black text-gray-800 text-lg mb-4">Daily Price Guide for Next Week</h3>
+        <h3 className="font-black text-gray-800 text-lg mb-4">📅 Miraa Price Predictions for Next Week</h3>
         <p className="text-sm text-gray-600 mb-4">
-          This table shows what prices might be each day. Use it to plan when to harvest and sell your miraa.
+          <strong>All prices are per kilogram (per kg)</strong>. This table shows what you might get paid for your miraa each day. Higher prices = more money for you!
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b-2 border-gray-100 text-gray-400 uppercase tracking-wider text-xs">
                 <th className="pb-4 font-bold">Day</th>
-                <th className="pb-4 font-bold">Expected Price</th>
-                <th className="pb-4 font-bold">Buyer Demand</th>
-                <th className="pb-4 font-bold">Price Range</th>
-                <th className="pb-4 font-bold">Market Direction</th>
+                <th className="pb-4 font-bold">Price per kg</th>
+                <th className="pb-4 font-bold">Buyers Want (kg)</th>
+                <th className="pb-4 font-bold">Possible Price Range</th>
+                <th className="pb-4 font-bold">Compared to Today</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -366,15 +369,19 @@ export default function DashboardPage() {
                 <tr key={index} className="hover:bg-gray-50 transition-colors">
                   <td className="py-4 font-bold text-gray-800">{item.day}</td>
                   <td className="py-4 text-gray-800 font-bold">
-                    KES {item.predictedPrice?.toLocaleString()}
-                    {item.actualPrice && <span className="text-emerald-600 ml-2">(Today's actual)</span>}
+                    KES {item.predictedPrice?.toLocaleString()}/kg
+                    {item.actualPrice && <span className="text-emerald-600 ml-2 block text-xs">(This is today's real price)</span>}
                   </td>
-                  <td className="py-4 text-gray-600">{item.demand?.toLocaleString()} kg</td>
+                  <td className="py-4 text-gray-600">
+                    {item.demand?.toLocaleString()} kg
+                    <span className="block text-xs text-gray-500">available to buy</span>
+                  </td>
                   <td className="py-4 text-gray-600">
                     {item.confidence ?
-                      `KES ${item.confidence.priceLower?.toLocaleString()} - ${item.confidence.priceUpper?.toLocaleString()}` :
+                      `KES ${item.confidence.priceLower?.toLocaleString()} - ${item.confidence.priceUpper?.toLocaleString()}/kg` :
                       'N/A'
                     }
+                    <span className="block text-xs text-gray-500">most likely range</span>
                   </td>
                   <td className="py-4">
                     <span className={`px-3 py-1.5 rounded-lg text-xs font-black ${
@@ -382,8 +389,8 @@ export default function DashboardPage() {
                       item.predictedPrice < aiData.currentAvgPrice ? 'bg-red-100 text-red-700' :
                       'bg-blue-100 text-blue-700'
                     }`}>
-                      {item.predictedPrice > aiData.currentAvgPrice ? '↗ Better than today' :
-                       item.predictedPrice < aiData.currentAvgPrice ? '↘ Worse than today' : '→ Same as today'}
+                      {item.predictedPrice > aiData.currentAvgPrice ? '📈 Higher price' :
+                       item.predictedPrice < aiData.currentAvgPrice ? '📉 Lower price' : '➡️ Same price'}
                     </span>
                   </td>
                 </tr>
@@ -391,9 +398,18 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-gray-500 mt-4">
-          💡 Tip: Look for days with high demand and good prices. The price range shows the most likely prices (not guaranteed).
-        </p>
+        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+          <h4 className="font-bold text-blue-800 mb-2">💡 How to Read This Table:</h4>
+          <ul className="text-sm text-blue-700 space-y-1">
+            <li>• <strong>Price per kg:</strong> How much money you get for each kilogram of miraa</li>
+            <li>• <strong>Buyers Want:</strong> Total kilograms buyers are looking to purchase that day</li>
+            <li>• <strong>Possible Range:</strong> Prices might be between these numbers (not exact)</li>
+            <li>• <strong>Compared to Today:</strong> Is this day better or worse than selling today?</li>
+          </ul>
+          <p className="text-xs text-blue-600 mt-2 font-medium">
+            🎯 <strong>Farmer Tip:</strong> Look for days with high demand (big numbers) and "Higher price" arrows. These are your best selling days!
+          </p>
+        </div>
       </div>
     </div>
   );
