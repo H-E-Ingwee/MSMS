@@ -239,41 +239,70 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Price Forecast Chart */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-          <h3 className="font-black text-gray-800 text-lg mb-4 flex items-center gap-2">
-            <TrendingUp size={20} className="text-blue-500" />
-            Price Trends: Past & Future
+          <h3 className="font-black text-gray-800 text-lg mb-2 flex items-center gap-2">
+            <TrendingUp size={20} className="text-emerald-600" />
+            💰 Price Trends: Past & Future Predictions
           </h3>
-          <p className="text-sm text-gray-600 mb-4">
-            This chart shows what prices were in the past (green line) and what they might be in the future (blue dashed line). 
-            The shaded area shows the possible price range - prices could be higher or lower than predicted.
+          <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+            <strong>Green solid line</strong> = Real prices we already saw (what actually happened)
+            <br />
+            <strong>Blue dashed line</strong> = AI predictions for future prices
+            <br />
+            <strong>Light blue shaded area</strong> = Possible price range (prices could be higher or lower)
           </p>
-          <div className="h-80">
+          
+          {/* Chart Legend */}
+          <div className="mb-4 flex flex-wrap gap-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-1 bg-emerald-600"></div>
+              <span className="text-xs font-bold text-gray-700">Actual Price (Real Data)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-1 bg-blue-600" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #2563eb 0, #2563eb 5px, transparent 5px, transparent 10px)' }}></div>
+              <span className="text-xs font-bold text-gray-700">Predicted Price (AI Forecast)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-3 bg-blue-200 opacity-50 rounded"></div>
+              <span className="text-xs font-bold text-gray-700">Possible Range</span>
+            </div>
+          </div>
+
+          <div className="h-80 border border-gray-100 rounded-lg bg-gradient-to-b from-blue-50 to-white p-2">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={priceChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" fontSize={12} />
-                <YAxis fontSize={12} />
+              <ComposedChart data={priceChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="date" fontSize={11} tick={{ fill: '#6b7280' }} />
+                <YAxis fontSize={11} tick={{ fill: '#6b7280' }} label={{ value: 'Price (KES/kg)', angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#6b7280' } }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
+                    border: '2px solid #059669',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                   }}
-                  formatter={(value, name) => [
-                    name === 'actual' ? `KES ${value?.toLocaleString()}/kg` : 
-                    name === 'predicted' ? `KES ${value?.toLocaleString()}/kg` : value,
-                    name === 'actual' ? 'Actual Price (per kg)' : 
-                    name === 'predicted' ? 'Predicted Price (per kg)' : name
-                  ]}
+                  formatter={(value, name) => {
+                    if (value === null) return '';
+                    return [
+                      `KES ${value?.toLocaleString()}/kg`,
+                      name === 'actual' ? '📊 Real Price' : 
+                      name === 'predicted' ? '🔮 AI Prediction' : 
+                      name === 'upper' ? 'Upper Range' : 'Lower Range'
+                    ];
+                  }}
+                  labelFormatter={(date) => `Date: ${date}`}
                 />
-                <Legend />
+                <Legend 
+                  wrapperStyle={{ fontSize: 12, fontWeight: 'bold' }}
+                  iconType="line"
+                />
                 <Area
                   type="monotone"
                   dataKey="upper"
                   stackId="1"
                   stroke="none"
-                  fill="#dbeafe"
-                  fillOpacity={0.3}
+                  fill="#93c5fd"
+                  fillOpacity={0.35}
+                  isAnimationActive={true}
                 />
                 <Area
                   type="monotone"
@@ -286,64 +315,117 @@ export default function DashboardPage() {
                 <Line
                   type="monotone"
                   dataKey="actual"
-                  stroke="#16a34a"
-                  strokeWidth={3}
-                  dot={{ fill: '#16a34a', strokeWidth: 2, r: 4 }}
-                  name="Actual Price"
+                  stroke="#059669"
+                  strokeWidth={4}
+                  dot={{ fill: '#059669', strokeWidth: 2, r: 5 }}
+                  activeDot={{ r: 7 }}
+                  name="📊 Actual Price (Real Data)"
+                  isAnimationActive={true}
                 />
                 <Line
                   type="monotone"
                   dataKey="predicted"
                   stroke="#2563eb"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ fill: '#2563eb', strokeWidth: 2, r: 3 }}
-                  name="Predicted Price"
+                  strokeWidth={3}
+                  strokeDasharray="8 4"
+                  dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="🔮 Predicted Price (AI)"
+                  isAnimationActive={true}
                 />
-                <ReferenceLine x={priceChartData.find(d => d.actual === null)?.date} stroke="#6b7280" strokeDasharray="2 2" />
+                <ReferenceLine 
+                  x={priceChartData.find(d => d.actual === null)?.date} 
+                  stroke="#9ca3af" 
+                  strokeDasharray="4 4"
+                  label={{ value: 'Tomorrow ➜', position: 'top', fill: '#6b7280', fontSize: 11, fontWeight: 'bold' }}
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Green: What prices actually were | Blue: What prices might be | Shaded: Possible price range
-          </p>
+          
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+              <p className="text-xs font-bold text-emerald-700 mb-1">✅ Real Prices</p>
+              <p className="text-xs text-emerald-600">Historical data (green dots) - prices that already happened</p>
+            </div>
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-xs font-bold text-blue-700 mb-1">🔮 Predictions</p>
+              <p className="text-xs text-blue-600">AI forecasts (blue dots) - prices that might happen</p>
+            </div>
+          </div>
         </div>
 
         {/* Demand Forecast Chart */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-          <h3 className="font-black text-gray-800 text-lg mb-4 flex items-center gap-2">
+          <h3 className="font-black text-gray-800 text-lg mb-2 flex items-center gap-2">
             <BarChart3 size={20} className="text-orange-500" />
-            How Much Buyers Want (Demand)
+            📊 Buyer Demand Forecast
           </h3>
-          <p className="text-sm text-gray-600 mb-4">
-            This shows how many kilograms of miraa buyers might want to buy each day. 
-            Higher demand usually means you can sell more, but prices might not always be higher.
+          <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+            This shows how many kilograms buyers want to purchase each day. 
+            <strong className="block mt-2">Higher demand = More buyers ready to buy your miraa!</strong>
+            Look for days with tall bars - those are your best opportunities to sell.
           </p>
-          <div className="h-80">
+
+          {/* Demand Info Cards */}
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+              <p className="text-xs font-bold text-orange-700">Peak Demand</p>
+              <p className="text-lg font-black text-orange-600">
+                {Math.max(...(demandChartData?.map(d => d.demand) || [0]))?.toLocaleString()} kg
+              </p>
+            </div>
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-xs font-bold text-amber-700">Best Day</p>
+              <p className="text-lg font-black text-amber-600">
+                {demandChartData?.reduce((max, item) => item.demand > max.demand ? item : max, demandChartData[0])?.day || 'N/A'}
+              </p>
+            </div>
+          </div>
+
+          <div className="h-80 border border-gray-100 rounded-lg bg-gradient-to-b from-orange-50 to-white p-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={demandChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="day" fontSize={12} />
-                <YAxis fontSize={12} />
+              <BarChart data={demandChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="day" fontSize={11} tick={{ fill: '#6b7280' }} />
+                <YAxis fontSize={11} tick={{ fill: '#6b7280' }} label={{ value: 'Demand (kg)', angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#6b7280' } }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
+                    border: '2px solid #ea580c',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                   }}
                   formatter={(value, name) => [
-                    name === 'demand' ? `${value.toLocaleString()} kg` : `KES ${value.toLocaleString()}`,
-                    name === 'demand' ? 'Expected Demand' : 'Price'
+                    `${value?.toLocaleString()} kg of miraa`,
+                    '👥 Buyers Looking to Purchase'
                   ]}
+                  labelFormatter={(day) => `📅 ${day}`}
                 />
-                <Legend />
-                <Bar dataKey="demand" fill="#f97316" radius={[4, 4, 0, 0]} name="Demand" />
+                <Legend 
+                  wrapperStyle={{ fontSize: 12, fontWeight: 'bold' }}
+                  formatter={() => '📈 Market Demand'}
+                />
+                <Bar 
+                  dataKey="demand" 
+                  fill="#f97316"
+                  radius={[8, 8, 0, 0]}
+                  name="👥 Market Demand"
+                  isAnimationActive={true}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Higher bars mean more buyers looking to purchase miraa that day
-          </p>
+
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-xs font-bold text-blue-700 mb-2">✅ How to Use This Chart:</p>
+            <ul className="text-xs text-blue-600 space-y-1">
+              <li>• <strong>Tall bars</strong> = More buyers want to buy that day (great for selling!)</li>
+              <li>• <strong>Short bars</strong> = Fewer buyers interested (might take longer to sell)</li>
+              <li>• <strong>Combine with price chart:</strong> Look for days with HIGH demand AND price going UP 📈</li>
+              <li className="font-bold text-blue-700 mt-2">🎯 Sweet Spot: High demand + Rising prices = Perfect selling day!</li>
+            </ul>
+          </div>
         </div>
       </div>
 
