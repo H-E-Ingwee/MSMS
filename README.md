@@ -143,18 +143,21 @@ Important variables:
 
 ## 📚 Documentation
 
-- [User Guide](docs/USER_GUIDE.md)
-- [Developer Guide](docs/DEVELOPER_GUIDE.md)
-- [Frontend Spec](docs/MSMS-frontend-spec.md)
-- [Prediction Model Docs](docs/PREDICTION_MODEL_DOCS.md)
+- **[PROJECT_DOCUMENTATION.md](./PROJECT_DOCUMENTATION.md)** - **Complete academic project documentation** (comprehensive system overview, architecture, implementation details)
+- [API Reference](backend/API_REFERENCE.md) - Complete backend API documentation
+- [Frontend Spec](docs/MSMS-frontend-spec.md) - Architecture and design system
+- [Prediction Model Docs](docs/PREDICTION_MODEL_DOCS.md) - AI/ML integration details
+- [Developer Guide](docs/DEVELOPER_GUIDE.md) - Setup and contribution guidelines
+- [User Guide](docs/USER_GUIDE.md) - End-user instructions
 
 ---
 
 ## 💡 Notes
 
-- Order approval is handled by farmers for their own listings.
+- Order approval is handled by farmers for their own listings only (farmers cannot approve orders for other farmers' listings).
 - Payments require order approval before M-Pesa checkout begins.
 - Notifications are used for order creation, approval, payment status, and training updates.
+- Predictive dashboard displays realistic pricing (KES 560/kg) with farmer-friendly explanations and actionable recommendations.
 
 ---
 

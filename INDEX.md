@@ -4,8 +4,9 @@
 
 ### For Everyone
 1. [README.md](./README.md) - **2-minute overview** (install + run)
-2. [DELIVERY_SUMMARY.md](./DELIVERY_SUMMARY.md) - **What's been built** (status + metrics)
-3. [DIRECTORY_TREE.md](./DIRECTORY_TREE.md) - **File navigator** (where to find what)
+2. [PROJECT_DOCUMENTATION.md](./PROJECT_DOCUMENTATION.md) - **Complete project documentation** (academic submission ready)
+3. [DELIVERY_SUMMARY.md](./DELIVERY_SUMMARY.md) - **What's been built** (status + metrics)
+4. [DIRECTORY_TREE.md](./DIRECTORY_TREE.md) - **File navigator** (where to find what)
 
 ### For Developers
 4. [IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md) - **How to extend** (API integration, folder structure, next steps)

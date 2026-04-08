@@ -46,7 +46,7 @@ The model is trained on historical Miraa market data stored in:
 
 Key columns include:
 - `date`
-- `price_kes`
+- `price_kes` (current market price around KES 560/kg)
 - `demand_volume`
 
 The service converts the `date` field into a datetime index and sorts records chronologically before training.

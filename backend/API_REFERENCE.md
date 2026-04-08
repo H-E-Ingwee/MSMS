@@ -313,6 +313,25 @@ Create a new order (Buyers only).
 }
 ```
 
+### PUT /orders/:id/approve
+Approve or reject an order (Farmers only - only the listing owner can approve their own orders).
+
+**Request Body:**
+```json
+{
+  "approved": "boolean",
+  "farmerNotes": "string (optional, max 500 chars)"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Order approved/rejected successfully",
+  "order": { ... }
+}
+```
+
 ### PUT /orders/:id/status
 Update order status.
 
