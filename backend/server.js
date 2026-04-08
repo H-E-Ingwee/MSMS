@@ -153,10 +153,18 @@ process.on('SIGINT', async () => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 MSMS Backend server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔗 Frontend URL: ${FRONTEND_URL}`);
+});
+
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Please stop the process using this port or set PORT to a different value.`);
+    process.exit(1);
+  }
+  console.error('Server error:', error);
 });
 
 // Export for testing
