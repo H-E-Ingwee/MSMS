@@ -155,7 +155,6 @@ export default function OrdersPage() {
   const getActionButtons = (order) => {
     const isFarmer = user?.role === 'FARMER' && order.listing?.farmerId === user.id;
     const isBuyer = user?.role === 'BUYER' && order.buyerId === user.id;
-    const isAdmin = user?.role === 'ADMIN';
 
     // Debug logging
     console.log('Order action check:', {
@@ -166,11 +165,10 @@ export default function OrdersPage() {
       buyerId: order.buyerId,
       orderStatus: order.status,
       isFarmer,
-      isBuyer,
-      isAdmin
+      isBuyer
     });
 
-    if ((isFarmer || isAdmin) && order.status === 'PENDING_APPROVAL') {
+    if (isFarmer && order.status === 'PENDING_APPROVAL') {
       return (
         <div className="flex gap-2">
           <button
