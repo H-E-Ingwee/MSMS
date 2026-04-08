@@ -112,19 +112,43 @@ export default function OrdersPage() {
     }
   };
 
-  const handlePayOrder = async (order) => {
-    try {
-      const paymentData = await processMpesaPayment(
-        order.id,
-        user.phone.replace('+', ''), // Remove + prefix for M-Pesa
-        order.totalPrice
-      );
-      alert(`Payment initiated! Check your phone for M-Pesa prompt. Total: KES ${order.totalPrice}`);
-      loadOrders(); // Refresh orders
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return null;
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10 && digits.startsWith('0')) {
+      return `254${digits.slice(1)}`;
+    }
+    if (digits.length === 12 && digits.startsWith('254')) {
+      return digits;
+    }
+    if (digits.length === 13 && digits.startsWith('254')) {
+      return digits.slice(1);
+    }
+    return digits;
+  };
 
+  const handlePayOrder = async (order) => {
+    if (!user?.phone) {
+      alert('Please add your phone number to your profile before making a payment.');
+      return;
+    }
+
+    const formattedPhone = formatPhoneNumber(user.phone);
+    if (!formattedPhone) {
+      alert('Unable to format your phone number for M-Pesa. Please check your profile details.');
+      return;
+    }
+
+    setProcessingApproval(true);
+    try {
+      const paymentData = await processMpesaPayment(order.id, formattedPhone, order.totalPrice);
+      alert(paymentData?.message || `Payment initiated! Check your phone for the M-Pesa prompt. Total: KES ${order.totalPrice}`);
+      loadOrders(); // Refresh orders
     } catch (error) {
       console.error('Payment failed:', error);
-      alert(`Payment failed: ${error.message}`);
+      alert(`Payment failed: ${error.message || 'Please try again.'}`);
+    } finally {
+      setProcessingApproval(false);
     }
   };
 

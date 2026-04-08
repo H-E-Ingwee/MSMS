@@ -37,6 +37,16 @@ export default function MarketplacePage() {
   const filtered = gradeFilter === 'All Grades' ? listings : listings.filter(item => item.grade === gradeFilter);
 
   const handleBuyNow = (listing) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (user.role !== 'BUYER') {
+      alert('Only buyer accounts can place orders. Please switch to a buyer account or contact support.');
+      return;
+    }
+
     setSelectedListing(listing);
     setPurchaseQuantity(1);
     setDeliveryAddress('');

@@ -300,6 +300,10 @@ export const processMpesaPayment = async (orderId, phoneNumber, amount) => {
   });
 };
 
+export const initiateOrderPayment = async (orderId, phoneNumber, amount) => {
+  return await processMpesaPayment(orderId, phoneNumber, amount);
+};
+
 // Buyer order history and reviews
 export const getBuyerOrders = async () => {
   return await apiCall('/orders/buyer/history');
