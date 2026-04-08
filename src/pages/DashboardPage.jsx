@@ -21,32 +21,32 @@ export default function DashboardPage() {
         console.error(err);
         setError('Unable to load live AI predictions. Showing fallback forecast.');
         setAiData({
-          currentAvgPrice: 2280,
+          currentAvgPrice: 560,
           priceTrend: 'rising',
-          recommendation: 'Strong upward trend detected. High confidence in price increase. Consider holding harvest for optimal profits.',
+          recommendation: 'Market prices are showing steady growth. Consider harvesting soon while prices remain favorable. Monitor daily for optimal selling timing.',
           forecast: [
-            { day: 'Mon', actualPrice: 2280, predictedPrice: 2320, demand: 19350, confidence: { priceLower: 2250, priceUpper: 2390 } },
-            { day: 'Tue', actualPrice: null, predictedPrice: 2350, demand: 19450, confidence: { priceLower: 2280, priceUpper: 2420 } },
-            { day: 'Wed', actualPrice: null, predictedPrice: 2380, demand: 19550, confidence: { priceLower: 2310, priceUpper: 2450 } },
-            { day: 'Thu', actualPrice: null, predictedPrice: 2410, demand: 19650, confidence: { priceLower: 2340, priceUpper: 2480 } },
-            { day: 'Fri', actualPrice: null, predictedPrice: 2440, demand: 19750, confidence: { priceLower: 2370, priceUpper: 2510 } },
-            { day: 'Sat', actualPrice: null, predictedPrice: 2470, demand: 19850, confidence: { priceLower: 2400, priceUpper: 2540 } },
-            { day: 'Sun', actualPrice: null, predictedPrice: 2500, demand: 19950, confidence: { priceLower: 2430, priceUpper: 2570 } },
+            { day: 'Mon', actualPrice: 560, predictedPrice: 575, demand: 19350, confidence: { priceLower: 550, priceUpper: 590 } },
+            { day: 'Tue', actualPrice: null, predictedPrice: 580, demand: 19450, confidence: { priceLower: 565, priceUpper: 595 } },
+            { day: 'Wed', actualPrice: null, predictedPrice: 585, demand: 19550, confidence: { priceLower: 570, priceUpper: 600 } },
+            { day: 'Thu', actualPrice: null, predictedPrice: 590, demand: 19650, confidence: { priceLower: 575, priceUpper: 605 } },
+            { day: 'Fri', actualPrice: null, predictedPrice: 595, demand: 19750, confidence: { priceLower: 580, priceUpper: 610 } },
+            { day: 'Sat', actualPrice: null, predictedPrice: 600, demand: 19850, confidence: { priceLower: 585, priceUpper: 615 } },
+            { day: 'Sun', actualPrice: null, predictedPrice: 605, demand: 19950, confidence: { priceLower: 590, priceUpper: 620 } },
           ],
           analysis: {
             trend: 'rising',
-            avg_future_price: 2410,
-            price_change_percent: 5.7,
+            avg_future_price: 590,
+            price_change_percent: 5.4,
             confidence: 'high'
           },
           chartData: [
-            { date: '2026-03-28', actualPrice: 2260, actualDemand: 19200, predictedPrice: null, predictedDemand: null },
-            { date: '2026-03-29', actualPrice: 2270, actualDemand: 19250, predictedPrice: null, predictedDemand: null },
-            { date: '2026-03-30', actualPrice: 2275, actualDemand: 19300, predictedPrice: null, predictedDemand: null },
-            { date: '2026-03-31', actualPrice: 2280, actualDemand: 19350, predictedPrice: null, predictedDemand: null },
-            { date: '2026-04-01', actualPrice: null, actualDemand: null, predictedPrice: 2320, predictedDemand: 19450 },
-            { date: '2026-04-02', actualPrice: null, actualDemand: null, predictedPrice: 2350, predictedDemand: 19550 },
-            { date: '2026-04-03', actualPrice: null, actualDemand: null, predictedPrice: 2380, predictedDemand: 19650 },
+            { date: '2026-03-28', actualPrice: 540, actualDemand: 19200, predictedPrice: null, predictedDemand: null },
+            { date: '2026-03-29', actualPrice: 550, actualDemand: 19250, predictedPrice: null, predictedDemand: null },
+            { date: '2026-03-30', actualPrice: 555, actualDemand: 19300, predictedPrice: null, predictedDemand: null },
+            { date: '2026-03-31', actualPrice: 560, actualDemand: 19350, predictedPrice: null, predictedDemand: null },
+            { date: '2026-04-01', actualPrice: null, actualDemand: null, predictedPrice: 575, predictedDemand: 19450 },
+            { date: '2026-04-02', actualPrice: null, actualDemand: null, predictedPrice: 580, predictedDemand: 19550 },
+            { date: '2026-04-03', actualPrice: null, actualDemand: null, predictedPrice: 585, predictedDemand: 19650 },
           ]
         });
       } finally {
@@ -102,9 +102,21 @@ export default function DashboardPage() {
           <li>• <strong>Demand:</strong> How much miraa buyers might want to buy</li>
           <li>• <strong>AI Advice:</strong> Suggestions on when to harvest based on price trends</li>
         </ul>
-        <p className="text-xs mt-2 text-blue-600">
-          Note: These are wholesale predictions. Marketplace prices may vary based on quality and location.
-        </p>
+        <div className="mt-3 p-3 bg-white rounded-lg border">
+          <h5 className="font-semibold text-sm mb-1">💰 Understanding KES 560 Price:</h5>
+          <p className="text-xs">
+            This is the <strong>current wholesale market average</strong> for miraa. Individual marketplace listings may vary based on:
+          </p>
+          <ul className="text-xs mt-1 space-y-1 ml-4">
+            <li>• Quality grade (Kangeta, Alele, Giza, Lomboko)</li>
+            <li>• Location and transportation costs</li>
+            <li>• Quantity available (bulk vs small lots)</li>
+            <li>• Farmer-buyer negotiations</li>
+          </ul>
+          <p className="text-xs mt-2 font-medium">
+            Marketplace shows current offers, dashboard predicts future trends.
+          </p>
+        </div>
       </div>
 
       {error && (
@@ -185,21 +197,24 @@ export default function DashboardPage() {
             <ul className="text-sm space-y-1 text-emerald-100">
               {aiData?.priceTrend === 'rising' ? (
                 <>
-                  <li>• Wait 2-3 days before harvesting to get higher prices</li>
-                  <li>• Store your miraa properly to maintain quality</li>
-                  <li>• Check prices daily in the marketplace</li>
+                  <li>• Prices are going up - good time to sell if ready</li>
+                  <li>• Check marketplace for current buyer offers around KES 560/kg</li>
+                  <li>• Higher grades (Giza) may get premium prices above market average</li>
+                  <li>• Consider holding small amounts for next week when prices may reach KES 600</li>
                 </>
               ) : aiData?.priceTrend === 'falling' ? (
                 <>
-                  <li>• Harvest and sell soon to avoid price drops</li>
-                  <li>• Consider selling to regular buyers first</li>
-                  <li>• Look for buyers willing to pay current prices</li>
+                  <li>• Prices may drop - harvest and sell this week at current KES 560/kg</li>
+                  <li>• Contact buyers directly through marketplace listings</li>
+                  <li>• Focus on selling to regular customers who pay reliably</li>
+                  <li>• Check for bulk buyers who may offer better rates</li>
                 </>
               ) : (
                 <>
-                  <li>• Market is stable - harvest when ready</li>
-                  <li>• Focus on quality to get better prices</li>
-                  <li>• Build relationships with good buyers</li>
+                  <li>• Market is stable around KES 560/kg - harvest when convenient</li>
+                  <li>• Compare prices across different marketplace listings</li>
+                  <li>• Build relationships with good buyers for consistent sales</li>
+                  <li>• Focus on quality to get better prices than market average</li>
                 </>
               )}
             </ul>
