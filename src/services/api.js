@@ -66,6 +66,13 @@ export const getCurrentUser = async () => {
   return await apiCall('/auth/profile');
 };
 
+export const updateProfile = async (updates) => {
+  return await apiCall('/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+};
+
 export const getPredictiveData = async () => {
   return await apiCall('/predictive/forecast');
 };

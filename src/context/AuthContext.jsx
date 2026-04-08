@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { getCurrentUser, loginWithOtp, registerUser, logout as apiLogout } from '../services/api';
+import { getCurrentUser, loginWithOtp, registerUser, updateProfile as apiUpdateProfile, logout as apiLogout } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -44,12 +44,20 @@ export function AuthProvider({ children }) {
     return response.user;
   };
 
+  const updateProfile = async (updates) => {
+    const response = await apiUpdateProfile(updates);
+    const updatedUser = response.user || response;
+    setUser(updatedUser);
+    localStorage.setItem('msms_auth', JSON.stringify(updatedUser));
+    return updatedUser;
+  };
+
   const logout = () => {
     setUser(null);
     apiLogout();
   };
 
-  const value = useMemo(() => ({ user, loading, login, register, logout }), [user, loading]);
+  const value = useMemo(() => ({ user, loading, login, register, updateProfile, logout }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

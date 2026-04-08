@@ -2,20 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { MapPin, Phone, Package, Clock, CheckCircle2, X, AlertCircle } from 'lucide-react';
 import SectionHeading from '../components/atoms/SectionHeading';
 import PrimaryButton from '../components/atoms/PrimaryButton';
-import { getOrders } from '../services/api';
+import { getOrders, processMpesaPayment } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function OrderTrackingPage() {
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('All');
-  const [userRole, setUserRole] = useState('BUYER');
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   useEffect(() => {
     loadOrders();
-    
-    // Get user role from localStorage
-    const user = JSON.parse(localStorage.getItem('msms_auth') || '{}');
-    setUserRole(user.role || 'BUYER');
   }, []);
 
   const loadOrders = async () => {
@@ -74,6 +72,45 @@ export default function OrderTrackingPage() {
       day: 'numeric',
     });
   };
+
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return null;
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10 && digits.startsWith('0')) {
+      return `254${digits.slice(1)}`;
+    }
+    if (digits.length === 12 && digits.startsWith('254')) {
+      return digits;
+    }
+    return digits;
+  };
+
+  const handlePayNow = async (order) => {
+    if (!user?.phone) {
+      alert('Please add your phone number to your profile before making a payment.');
+      return;
+    }
+
+    const formattedPhone = formatPhoneNumber(user.phone);
+    if (!formattedPhone) {
+      alert('Unable to format your phone number for M-Pesa. Please check your profile details.');
+      return;
+    }
+
+    setPaymentLoading(true);
+    try {
+      const response = await processMpesaPayment(order.id, formattedPhone, order.totalPrice);
+      alert(response?.message || `Payment started. Check your phone for the M-Pesa prompt.`);
+      await loadOrders();
+    } catch (error) {
+      console.error('Payment initiation failed:', error);
+      alert(error.message || 'Payment initiation failed. Please try again.');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const userRole = user?.role || 'BUYER';
 
   return (
     <div className="space-y-6">
@@ -239,14 +276,23 @@ export default function OrderTrackingPage() {
 
               {/* Actions */}
               <div className="mt-4 flex gap-3">
+                {order.status === 'APPROVED' && userRole === 'BUYER' && (
+                  <PrimaryButton
+                    className="flex-1"
+                    onClick={() => handlePayNow(order)}
+                    disabled={paymentLoading}
+                  >
+                    {paymentLoading ? 'Processing...' : 'Pay Now'}
+                  </PrimaryButton>
+                )}
                 {order.status === 'PAID' && userRole === 'BUYER' && (
-                  <PrimaryButton className="flex-1">
+                  <PrimaryButton className="flex-1" onClick={() => alert('Reach out to the seller to arrange delivery.') }>
                     Contact Seller
                   </PrimaryButton>
                 )}
-                {order.status === 'APPROVED' && userRole === 'BUYER' && (
-                  <PrimaryButton className="flex-1">
-                    Pay Now
+                {order.status !== 'APPROVED' && order.status !== 'PAID' && userRole === 'BUYER' && (
+                  <PrimaryButton className="flex-1" onClick={() => alert('Your order is in progress. Check the order details for updates.') }>
+                    Track Order
                   </PrimaryButton>
                 )}
               </div>

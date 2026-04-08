@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import SectionHeading from '../components/atoms/SectionHeading';
 import Card from '../components/atoms/Card';
 import Input from '../components/atoms/Input';
@@ -6,13 +6,41 @@ import PrimaryButton from '../components/atoms/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProfilePage() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: user?.name || '', phone: user?.phone || '', location: user?.location || '' });
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    // For now we only update local state; call API during integration
-    setEditing(false);
+  useEffect(() => {
+    setForm({
+      name: user?.name || '',
+      phone: user?.phone || '',
+      location: user?.location || '',
+    });
+  }, [user]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updates = { name: form.name.trim() };
+      if (form.location.trim()) {
+        updates.location = form.location.trim();
+      }
+
+      const updatedUser = await updateProfile(updates);
+      setForm({
+        name: updatedUser.name,
+        phone: updatedUser.phone,
+        location: updatedUser.location || '',
+      });
+      setEditing(false);
+      alert('Profile updated successfully.');
+    } catch (error) {
+      console.error('Profile save failed:', error);
+      alert('Unable to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -41,10 +69,11 @@ export default function ProfilePage() {
         {editing ? (
           <div className="space-y-4">
             <Input label="Full Name" value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} />
-            <Input label="Phone" value={form.phone} onChange={e => setForm(prev => ({ ...prev, phone: e.target.value }))} />
+            <Input label="Phone" value={form.phone} disabled />
+            <p className="text-xs text-gray-500">Phone numbers are managed during login and cannot be changed here.</p>
             <Input label="Location" value={form.location} onChange={e => setForm(prev => ({ ...prev, location: e.target.value }))} />
             <div className="flex gap-3">
-              <PrimaryButton className="bg-green-600 text-white" onClick={handleSave}>Save</PrimaryButton>
+              <PrimaryButton className="bg-green-600 text-white" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</PrimaryButton>
               <PrimaryButton className="bg-gray-200 text-gray-700" onClick={() => setEditing(false)}>Cancel</PrimaryButton>
             </div>
           </div>
