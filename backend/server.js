@@ -26,10 +26,22 @@ const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5174';
 
 // Rate limiting
+const isProduction = process.env.NODE_ENV === 'production';
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: isProduction ? 20 : 100, // limit auth requests per IP
+  message: 'Too many authentication attempts from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: isProduction ? 100 : 1000, // limit each IP to 100 requests per windowMs in production, more permissive in development
   message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Middleware
@@ -68,6 +80,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(morgan('combined')); // Logging
+app.use('/api/auth', authLimiter);
 app.use(limiter); // Rate limiting
 app.use(express.json({ limit: '10mb' })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true }));

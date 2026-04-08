@@ -218,22 +218,16 @@ router.post('/', [
       },
     });
 
-    // Create notification for admin (super admin handles all approvals)
-    const admin = await prisma.user.findFirst({
-      where: { role: 'ADMIN', phone: '+254798936316' },
+    // Create notification for the farmer to approve the order
+    await prisma.notification.create({
+      data: {
+        userId: listing.farmerId,
+        type: 'ORDER_RECEIVED',
+        title: 'New Order Request',
+        message: `${req.user.name} wants to buy ${quantity}kg of ${listing.grade} Miraa from your listing. Please review and approve or reject the order.`,
+        orderId: order.id,
+      },
     });
-
-    if (admin) {
-      await prisma.notification.create({
-        data: {
-          userId: admin.id,
-          type: 'ORDER_RECEIVED',
-          title: 'New Order Request - Admin Approval Required',
-          message: `${req.user.name} wants to buy ${quantity}kg of ${listing.grade} Miraa from ${listing.farmer.name} for KES ${totalPrice.toLocaleString()}`,
-          orderId: order.id,
-        },
-      });
-    }
 
     // Update listing quantity (reserve the ordered amount)
     await prisma.listing.update({
@@ -254,7 +248,7 @@ router.post('/', [
   }
 });
 
-// Approve or reject order (admins only - centralized approval system)
+// Approve or reject order (farmer can approve their own listing orders)
 router.put('/:id/approve', [
   authenticateToken,
   body('approved').isBoolean().withMessage('Approved must be boolean'),
@@ -273,14 +267,6 @@ router.put('/:id/approve', [
     const { id } = req.params;
     const { approved, farmerNotes } = req.body;
 
-    // Check if user is admin
-    if (req.user.role !== 'ADMIN') {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'Only administrators can approve orders',
-      });
-    }
-
     // Find the order
     const order = await prisma.order.findUnique({
       where: { id },
@@ -293,6 +279,21 @@ router.put('/:id/approve', [
         buyer: true,
       },
     });
+
+    if (!order) {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Order not found',
+      });
+    }
+
+    // Only the listing owner or an admin can approve/reject the order
+    if (req.user.role !== 'ADMIN' && req.user.id !== order.listing.farmerId) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Only the seller can approve or reject this order',
+      });
+    }
 
     if (!order) {
       return res.status(404).json({
@@ -350,7 +351,7 @@ router.put('/:id/approve', [
           title: approved ? 'Order Approved - Ready for Payment' : 'Order Rejected',
           message: approved
             ? `Your order for ${order.quantity}kg ${order.listing.grade} has been approved! Please proceed with payment through the orders page to complete your purchase.`
-            : `Your order for ${order.quantity}kg ${order.listing.grade} has been rejected by admin. ${farmerNotes || ''}`,
+            : `Your order for ${order.quantity}kg ${order.listing.grade} has been rejected by the seller. ${farmerNotes || ''}`,
           orderId: order.id,
         },
       }),
@@ -361,8 +362,8 @@ router.put('/:id/approve', [
           type: approved ? 'ORDER_APPROVED' : 'ORDER_REJECTED',
           title: approved ? 'Order Approved' : 'Order Rejected',
           message: approved
-            ? `Your ${order.listing.grade} listing order for ${order.quantity}kg has been approved by admin. Payment will be processed once buyer completes payment.`
-            : `Your ${order.listing.grade} listing order for ${order.quantity}kg has been rejected by admin. ${farmerNotes || ''}`,
+            ? `Your ${order.listing.grade} listing order for ${order.quantity}kg has been approved. Payment will be processed once buyer completes payment.`
+            : `Your ${order.listing.grade} listing order for ${order.quantity}kg has been rejected. ${farmerNotes || ''}`,
           orderId: order.id,
         },
       }),
