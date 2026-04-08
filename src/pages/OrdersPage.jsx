@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Package, Clock, CheckCircle, XCircle, Truck, MessageCircle, Check, X, Eye } from 'lucide-react';
 import SectionHeading from '../components/atoms/SectionHeading';
 import PrimaryButton from '../components/atoms/PrimaryButton';
-import { getOrders } from '../services/api';
+import { getOrders, processMpesaPayment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function OrdersPage() {
@@ -124,25 +124,11 @@ export default function OrdersPage() {
 
   const handlePayOrder = async (order) => {
     try {
-      const paymentResult = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/payments/order/${order.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify({
-          paymentMethod: 'MPESA',
-          phoneNumber: user.phone.replace('+', ''), // Remove + prefix for M-Pesa
-          amount: order.totalPrice,
-        }),
-      });
-
-      if (!paymentResult.ok) {
-        const errorData = await paymentResult.json();
-        throw new Error(errorData.message || 'Payment failed');
-      }
-
-      const paymentData = await paymentResult.json();
+      const paymentData = await processMpesaPayment(
+        order.id,
+        user.phone.replace('+', ''), // Remove + prefix for M-Pesa
+        order.totalPrice
+      );
       alert(`Payment initiated! Check your phone for M-Pesa prompt. Total: KES ${order.totalPrice}`);
       loadOrders(); // Refresh orders
 

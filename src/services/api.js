@@ -116,6 +116,10 @@ export const getAdminUsers = async (page = 1, limit = 50) => {
   return await apiCall(`/admin/users?page=${page}&limit=${limit}`);
 };
 
+export const getAdminUserDetails = async (userId) => {
+  return await apiCall(`/admin/users/${userId}`);
+};
+
 export const getAdminListings = async (page = 1, limit = 20, status = 'ALL') => {
   const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
   if (status !== 'ALL') params.append('status', status);
@@ -126,6 +130,13 @@ export const updateListingStatus = async (listingId, status, notes = '') => {
   return await apiCall(`/admin/listings/${listingId}/status`, {
     method: 'PUT',
     body: JSON.stringify({ status, notes }),
+  });
+};
+
+export const updateListing = async (listingId, updates) => {
+  return await apiCall(`/admin/listings/${listingId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
   });
 };
 
@@ -155,14 +166,53 @@ export const deleteTrainingModule = async (moduleId) => {
 
 export const downloadAdminReport = async (reportType) => {
   const response = await fetch(`${API_BASE_URL}/admin/reports/${reportType}`, {
-    headers: getAuthHeaders(),
+    method: 'GET',
+    headers: {
+      ...getAuthHeaders(),
+    },
   });
 
   if (!response.ok) {
-    throw new Error('Failed to download report');
+    const errorBody = await response.json().catch(() => null);
+    const message = errorBody?.message || response.statusText;
+    throw new Error(`API Error: ${message}`);
   }
 
-  return response.blob();
+  return await response.blob();
+};
+
+export const updateUserVerification = async (userId, verified) => {
+  return await apiCall(`/admin/users/${userId}/verify`, {
+    method: 'PUT',
+    body: JSON.stringify({ verified }),
+  });
+};
+
+export const updateUserRole = async (userId, role) => {
+  return await apiCall(`/admin/users/${userId}/role`, {
+    method: 'PUT',
+    body: JSON.stringify({ role }),
+  });
+};
+
+export const updateUserStatus = async (userId, active) => {
+  return await apiCall(`/admin/users/${userId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ active }),
+  });
+};
+
+export const deleteUser = async (userId) => {
+  return await apiCall(`/admin/users/${userId}`, {
+    method: 'DELETE',
+  });
+};
+
+export const bulkUserOperation = async (operation, userIds) => {
+  return await apiCall('/admin/users/bulk', {
+    method: 'POST',
+    body: JSON.stringify({ operation, userIds }),
+  });
 };
 
 export const getOrders = async () => {
@@ -170,12 +220,9 @@ export const getOrders = async () => {
   return response.orders || response;
 };
 
-export const processMpesaPayment = async ({ amount, phoneNumber, orderId }) => {
-  const response = await apiCall(`/payments/order/${orderId}`, {
-    method: 'POST',
-    body: JSON.stringify({ paymentMethod: 'MPESA', phoneNumber, amount }),
-  });
-  return response;
+export const getOrdersByStatus = async (status) => {
+  const response = await apiCall(`/orders?status=${status}`);
+  return response.orders || response;
 };
 
 export const logout = () => {
@@ -227,6 +274,17 @@ export const checkPaymentStatus = async (transactionId) => {
 
 export const getMpesaConfig = async () => {
   return await apiCall('/payments/config');
+};
+
+export const processMpesaPayment = async (orderId, phoneNumber, amount) => {
+  return await apiCall(`/payments/order/${orderId}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      paymentMethod: 'MPESA',
+      phoneNumber,
+      amount,
+    }),
+  });
 };
 
 // Buyer order history and reviews

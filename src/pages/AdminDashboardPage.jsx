@@ -10,13 +10,22 @@ import {
 import {
   getAdminStats,
   getAdminUsers,
+  getAdminUserDetails,
   getAdminListings,
   updateListingStatus,
+  updateListing,
   getAdminTrainingModules,
   createTrainingModule,
   updateTrainingModule,
   deleteTrainingModule,
   downloadAdminReport,
+  getOrdersByStatus,
+  approveOrder,
+  updateUserVerification,
+  updateUserRole,
+  updateUserStatus,
+  deleteUser,
+  bulkUserOperation,
 } from '../services/api';
 
 export default function AdminDashboardPage() {
@@ -59,13 +68,8 @@ export default function AdminDashboardPage() {
       setTotalPages(Math.ceil((usersResponse.pagination?.total || 0) / 20));
 
       // Load pending orders for approval
-      const ordersResponse = await fetch('http://localhost:3001/api/orders?status=PENDING_APPROVAL', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-      });
-      const ordersData = await ordersResponse.json();
-      setPendingOrders(ordersData.orders || []);
+      const pendingOrdersData = await getOrdersByStatus('PENDING_APPROVAL');
+      setPendingOrders(pendingOrdersData);
     } catch (error) {
       console.error('Error loading admin data:', error);
       // Fallback data
@@ -132,18 +136,7 @@ export default function AdminDashboardPage() {
 
   const handleUpdateListing = async (listingId, updates) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/admin/listings/${listingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify(updates),
-      });
-
-      if (!response.ok) throw new Error('Failed to update listing');
-
-      const result = await response.json();
+      const result = await updateListing(listingId, updates);
       alert(result.message);
       setEditingListing(null);
       loadListings();
@@ -198,29 +191,12 @@ export default function AdminDashboardPage() {
 
   const handleOrderApproval = async (orderId, approved, notes = '') => {
     try {
-      const response = await fetch(`http://localhost:3001/api/orders/${orderId}/approve`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify({ approved, farmerNotes: notes }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to process order approval');
-      }
-
+      await approveOrder(orderId, approved, notes);
       alert(approved ? 'Order approved successfully!' : 'Order rejected.');
       
       // Reload pending orders
-      const ordersResponse = await fetch('http://localhost:3001/api/orders?status=PENDING_APPROVAL', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-      });
-      const ordersData = await ordersResponse.json();
-      setPendingOrders(ordersData.orders || []);
+      const ordersData = await getOrdersByStatus('PENDING_APPROVAL');
+      setPendingOrders(ordersData);
     } catch (error) {
       console.error('Error approving order:', error);
       alert('Failed to process order approval');
@@ -230,19 +206,7 @@ export default function AdminDashboardPage() {
   // Member management functions
   const handleUserVerification = async (userId, verified) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}/verify`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify({ verified }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update user verification');
-      }
-
+      await updateUserVerification(userId, verified);
       alert(`User ${verified ? 'verified' : 'unverified'} successfully!`);
       loadAdminData();
     } catch (error) {
@@ -253,19 +217,7 @@ export default function AdminDashboardPage() {
 
   const handleUserRoleChange = async (userId, newRole) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update user role');
-      }
-
+      await updateUserRole(userId, newRole);
       alert(`User role updated to ${newRole} successfully!`);
       loadAdminData();
     } catch (error) {
@@ -276,19 +228,7 @@ export default function AdminDashboardPage() {
 
   const handleUserStatusChange = async (userId, active) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify({ active }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update user status');
-      }
-
+      await updateUserStatus(userId, active);
       alert(`User account ${active ? 'activated' : 'suspended'} successfully!`);
       loadAdminData();
     } catch (error) {
@@ -303,17 +243,7 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete user');
-      }
-
+      await deleteUser(userId);
       alert('User deleted successfully!');
       loadAdminData();
     } catch (error) {
@@ -333,23 +263,7 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/admin/users/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify({
-          operation,
-          userIds: selectedUsers,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to perform bulk operation');
-      }
-
-      const result = await response.json();
+      const result = await bulkUserOperation(operation, selectedUsers);
       alert(`${result.message} (${result.affected} users affected)`);
       setSelectedUsers([]);
       loadAdminData();
@@ -361,17 +275,7 @@ export default function AdminDashboardPage() {
 
   const handleViewUserDetails = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user details');
-      }
-
-      const data = await response.json();
+      const data = await getAdminUserDetails(userId);
       setUserDetailsModal(data.user);
     } catch (error) {
       console.error('Error fetching user details:', error);

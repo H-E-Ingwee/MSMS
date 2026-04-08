@@ -3,7 +3,7 @@ import { MapPin, Phone, CheckCircle2, PlusCircle, ShoppingCart, MessageCircle, X
 import { useNavigate } from 'react-router-dom';
 import SectionHeading from '../components/atoms/SectionHeading';
 import PrimaryButton from '../components/atoms/PrimaryButton';
-import { getMarketListings, createOrder, processMpesaPayment } from '../services/api';
+import { getMarketListings, createOrder } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function MarketplacePage() {
