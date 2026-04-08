@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, AlertCircle } from 'lucide-react';
 import SectionHeading from '../components/atoms/SectionHeading';
-import { getWalletData } from '../services/api';
+import { depositWallet, getWalletData, withdrawWallet } from '../services/api';
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState({ balance: 0, transactions: [] });
@@ -34,23 +34,7 @@ export default function WalletPage() {
 
     setProcessing(true);
     try {
-      const response = await fetch('http://localhost:3001/api/wallet/deposit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-          paymentMethod: 'MPESA',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Deposit failed');
-      }
-
-      const result = await response.json();
+      await depositWallet(parseFloat(amount), 'MPESA');
       alert('Deposit initiated successfully! Check your phone for M-Pesa prompt.');
       setDepositModal(false);
       setAmount('');
@@ -76,22 +60,7 @@ export default function WalletPage() {
 
     setProcessing(true);
     try {
-      const response = await fetch('http://localhost:3001/api/wallet/withdraw', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Withdrawal failed');
-      }
-
-      const result = await response.json();
+      await withdrawWallet(parseFloat(amount));
       alert('Withdrawal initiated successfully! Funds will be sent to your registered M-Pesa number.');
       setWithdrawModal(false);
       setAmount('');

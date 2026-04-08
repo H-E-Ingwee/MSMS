@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Package, Clock, CheckCircle, XCircle, Truck, MessageCircle, Check, X, Eye } from 'lucide-react';
 import SectionHeading from '../components/atoms/SectionHeading';
 import PrimaryButton from '../components/atoms/PrimaryButton';
-import { getOrders, processMpesaPayment } from '../services/api';
+import { approveOrder, getOrders, processMpesaPayment, rejectOrder } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function OrdersPage() {
@@ -93,20 +93,10 @@ export default function OrdersPage() {
 
     setProcessingApproval(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/orders/${selectedOrder.id}/approve`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('msms_token')}`,
-        },
-        body: JSON.stringify({
-          approved,
-          farmerNotes: farmerNotes.trim(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to process approval');
+      if (approved) {
+        await approveOrder(selectedOrder.id, farmerNotes.trim());
+      } else {
+        await rejectOrder(selectedOrder.id, farmerNotes.trim());
       }
 
       alert(approved ? 'Order approved successfully!' : 'Order rejected.');

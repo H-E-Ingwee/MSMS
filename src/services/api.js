@@ -81,6 +81,20 @@ export const getWalletData = async () => {
   return response;
 };
 
+export const depositWallet = async (amount, paymentMethod = 'MPESA') => {
+  return await apiCall('/wallet/deposit', {
+    method: 'POST',
+    body: JSON.stringify({ amount, paymentMethod }),
+  });
+};
+
+export const withdrawWallet = async (amount) => {
+  return await apiCall('/wallet/withdraw', {
+    method: 'POST',
+    body: JSON.stringify({ amount }),
+  });
+};
+
 export const getMarketListings = async () => {
   const response = await apiCall('/listings');
   return response.listings || response;
