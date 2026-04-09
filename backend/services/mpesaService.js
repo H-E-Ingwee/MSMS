@@ -91,9 +91,18 @@ export const initiateSTKPush = async ({ phoneNumber, amount, orderId, accountRef
   } catch (error) {
     console.error('❌ IntaSend STK Push error:');
     console.error('   Status:', error.response?.status);
-    console.error('   Data:', error.response?.data);
+    console.error('   Full Response:', JSON.stringify(error.response?.data, null, 2));
     console.error('   Message:', error.message);
-    throw new Error(`M-Pesa payment initiation failed: ${error.response?.data?.message || error.response?.data?.detail || error.message}`);
+    
+    // Extract specific error message from IntaSend
+    const errorMessage = error.response?.data?.detail 
+      || error.response?.data?.message 
+      || error.response?.data?.error 
+      || error.response?.data?.error_description
+      || error.message;
+    
+    console.error('   Extracted Error Message:', errorMessage);
+    throw new Error(`M-Pesa payment initiation failed: ${errorMessage}`);
   }
 };
 

@@ -8,6 +8,11 @@ import joblib
 import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import warnings
+
+# Suppress Prophet warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+os.environ['STAN_NUM_THREADS'] = '1'  # Windows compatibility
 
 class MiraaPricePredictor:
     def __init__(self):
@@ -32,21 +37,31 @@ class MiraaPricePredictor:
 
     def train_prophet_model(self, data, target_column):
         """Train Facebook Prophet model for time series forecasting"""
-        # Prepare data for Prophet
-        prophet_data = data[['date', target_column]].copy()
-        prophet_data.columns = ['ds', 'y']
+        try:
+            # Prepare data for Prophet
+            prophet_data = data[['date', target_column]].copy()
+            prophet_data.columns = ['ds', 'y']
 
-        # Initialize and fit Prophet model
-        model = Prophet(
-            yearly_seasonality=True,
-            weekly_seasonality=True,
-            daily_seasonality=False,
-            changepoint_prior_scale=0.05,
-            seasonality_prior_scale=10.0
-        )
-
-        model.fit(prophet_data)
-        return model
+            # Initialize and fit Prophet model with Windows-safe parameters
+            model = Prophet(
+                yearly_seasonality=True,
+                weekly_seasonality=True,
+                daily_seasonality=False,
+                changepoint_prior_scale=0.05,
+                seasonality_prior_scale=10.0,
+                interval_width=0.95
+            )
+            
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                model.fit(prophet_data)
+            
+            print(f"✅ Prophet model trained for {target_column}")
+            return model
+        except Exception as e:
+            print(f"⚠️  Prophet training failed for {target_column}: {str(e)[:100]}")
+            print(f"   Falling back to ARIMA model...")
+            return None  # Will use ARIMA fallback
 
     def train_arima_model(self, data, target_column):
         """Train ARIMA model as backup"""
@@ -72,22 +87,29 @@ class MiraaPricePredictor:
 
         print("Training price prediction models...")
 
-        # Train Prophet models
+        # Train Prophet models (with fallback if they fail)
         self.price_model = self.train_prophet_model(self.historical_data, 'price_kes')
         self.demand_model = self.train_prophet_model(self.historical_data, 'demand_volume')
 
-        # Train ARIMA models as backup
+        # Always train ARIMA models as backup
+        print("Training ARIMA models as backup...")
         self.price_arima = self.train_arima_model(self.historical_data, 'price_kes')
         self.demand_arima = self.train_arima_model(self.historical_data, 'demand_volume')
 
+        # Check if we have at least one model for each
+        if (self.price_model is None and self.price_arima is None) or \
+           (self.demand_model is None and self.demand_arima is None):
+            print("❌ Failed to train any models!")
+            return False
+
         self.last_trained = datetime.now()
-        print("Models trained successfully!")
+        print("✅ Models trained successfully!")
         return True
 
     def predict_future(self, days_ahead=7):
-        """Generate predictions for the next N days"""
-        if self.price_model is None or self.demand_model is None:
-            print("Models not trained yet")
+        """Generate predictions for the next N days using Prophet or ARIMA"""
+        if self.price_arima is None and self.price_model is None:
+            print("No models trained yet")
             return None
 
         # Create future dates
@@ -95,33 +117,61 @@ class MiraaPricePredictor:
         future_dates = pd.date_range(start=last_date + timedelta(days=1),
                                    periods=days_ahead, freq='D')
 
-        # Prepare future dataframe for Prophet
-        future_df = pd.DataFrame({'ds': future_dates})
-
-        # Make predictions
-        price_forecast = self.price_model.predict(future_df)
-        demand_forecast = self.demand_model.predict(future_df)
+        # Get predictions using Prophet if available, otherwise ARIMA
+        if self.price_model is not None and self.demand_model is not None:
+            # Use Prophet models
+            future_df = pd.DataFrame({'ds': future_dates})
+            price_forecast = self.price_model.predict(future_df)
+            demand_forecast = self.demand_model.predict(future_df)
+            use_prophet = True
+        else:
+            # Fall back to ARIMA predictions
+            use_prophet = False
+            price_forecast = None
+            demand_forecast = None
 
         # Extract predictions
         predictions = []
         day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
         for i, date in enumerate(future_dates):
-            price_point = float(price_forecast.iloc[i]['yhat'])
-            price_lower = float(price_forecast.iloc[i]['yhat_lower'])
-            price_upper = float(price_forecast.iloc[i]['yhat_upper'])
-            
-            demand_point = float(demand_forecast.iloc[i]['yhat'])
+            if use_prophet:
+                price_point = float(price_forecast.iloc[i]['yhat'])
+                price_lower = float(price_forecast.iloc[i]['yhat_lower'])
+                price_upper = float(price_forecast.iloc[i]['yhat_upper'])
+                demand_point = float(demand_forecast.iloc[i]['yhat'])
+                demand_lower = float(demand_forecast.iloc[i]['yhat_lower'])
+                demand_upper = float(demand_forecast.iloc[i]['yhat_upper'])
+            else:
+                # Use ARIMA predictions
+                try:
+                    price_forecast_obj = self.price_arima.get_forecast(steps=days_ahead)
+                    demand_forecast_obj = self.demand_arima.get_forecast(steps=days_ahead)
+                    
+                    price_point = float(price_forecast_obj.predicted_mean.iloc[i])
+                    demand_point = float(demand_forecast_obj.predicted_mean.iloc[i])
+                    
+                    # Approximate confidence intervals
+                    price_ci = price_forecast_obj.conf_int(alpha=0.05).iloc[i]
+                    demand_ci = demand_forecast_obj.conf_int(alpha=0.05).iloc[i]
+                    
+                    price_lower = float(price_ci.iloc[0])
+                    price_upper = float(price_ci.iloc[1])
+                    demand_lower = float(demand_ci.iloc[0])
+                    demand_upper = float(demand_ci.iloc[1])
+                except Exception as e:
+                    print(f"ARIMA prediction error: {e}")
+                    continue
             
             predictions.append({
                 'day': day_names[date.weekday()],
                 'fullDate': date.strftime('%Y-%m-%d'),
-                'predictedPrice': max(int(price_point), 100),  # Ensure minimum reasonable price
-                'predictedDemand': max(int(demand_point), 100),  # Ensure minimum demand
+                'predictedPrice': max(int(price_point), 100),
+                'predictedDemand': max(int(demand_point), 100),
                 'priceLower': max(int(price_lower), 100),
                 'priceUpper': int(price_upper),
-                'demandLower': max(int(demand_forecast.iloc[i]['yhat_lower']), 100),
-                'demandUpper': int(demand_forecast.iloc[i]['yhat_upper']),
+                'demandLower': max(int(demand_lower), 100),
+                'demandUpper': int(demand_upper),
                 'confidence': {
                     'priceLower': max(int(price_lower), 100),
                     'priceUpper': int(price_upper)
