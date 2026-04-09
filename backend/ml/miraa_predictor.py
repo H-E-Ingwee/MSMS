@@ -56,10 +56,10 @@ class MiraaPricePredictor:
                 warnings.simplefilter("ignore")
                 model.fit(prophet_data)
             
-            print(f"✅ Prophet model trained for {target_column}")
+            print(f"[OK] Prophet model trained for {target_column}")
             return model
         except Exception as e:
-            print(f"⚠️  Prophet training failed for {target_column}: {str(e)[:100]}")
+            print(f"[WARNING] Prophet training failed for {target_column}: {str(e)[:100]}")
             print(f"   Falling back to ARIMA model...")
             return None  # Will use ARIMA fallback
 
@@ -99,11 +99,11 @@ class MiraaPricePredictor:
         # Check if we have at least one model for each
         if (self.price_model is None and self.price_arima is None) or \
            (self.demand_model is None and self.demand_arima is None):
-            print("❌ Failed to train any models!")
+            print("[ERROR] Failed to train any models!")
             return False
 
         self.last_trained = datetime.now()
-        print("✅ Models trained successfully!")
+        print("[OK] Models trained successfully!")
         return True
 
     def predict_future(self, days_ahead=7):
@@ -313,17 +313,17 @@ def get_forecast():
             success = predictor.load_historical_data()
             if success:
                 predictor.train_models()
-                print("✅ Models trained successfully")
+                print("[OK] Models trained successfully")
             else:
-                print("❌ Failed to load historical data")
+                print("[ERROR] Failed to load historical data")
                 return jsonify({'error': 'Failed to load historical data', 'success': False}), 500
 
         data = predictor.get_forecast_data()
-        print(f"✅ Forecast generated - Current price:  KES {data['currentAvgPrice']}, Trend: {data['priceTrend']}")
+        print(f"[OK] Forecast generated - Current price:  KES {data['currentAvgPrice']}, Trend: {data['priceTrend']}")
         return jsonify(data)
 
     except Exception as e:
-        print(f"❌ Error in forecast: {str(e)}")
+        print(f"[ERROR] Error in forecast: {str(e)}")
         return jsonify({'error': str(e), 'success': False}), 500
 
 @app.route('/predict/<int:days>', methods=['GET'])
@@ -338,40 +338,40 @@ def predict_days(days):
 if __name__ == '__main__':
     # Initialize and train models on startup
     print("\n" + "="*60)
-    print("🚀 Initializing Miraa Price Prediction ML Service...")
+    print("[INIT] Initializing Miraa Price Prediction ML Service...")
     print("="*60)
     
     try:
-        print("\n📊 Loading historical data...")
+        print("\n[DATA] Loading historical data...")
         if predictor.load_historical_data():
-            print(f"✅ Data loaded: {predictor.historical_data.shape[0]} records found")
+            print(f"[OK] Data loaded: {predictor.historical_data.shape[0]} records found")
             print(f"   Date range: {predictor.historical_data['date'].min()} to {predictor.historical_data['date'].max()}")
             print(f"   Price range: KES {predictor.historical_data['price_kes'].min()} - {predictor.historical_data['price_kes'].max()}")
             print(f"   Demand range: {predictor.historical_data['demand_volume'].min()} - {predictor.historical_data['demand_volume'].max()} kg")
         else:
-            print("❌ Failed to load historical data")
+            print("[ERROR] Failed to load historical data")
             exit(1)
         
-        print("\n🧠 Training prediction models...")
+        print("\n[TRAIN] Training prediction models...")
         if predictor.train_models():
-            print("✅ Models trained successfully!")
+            print("[OK] Models trained successfully!")
             print(f"   Model Type: Facebook Prophet + ARIMA Hybrid")
             print(f"   Trained on: {predictor.historical_data.shape[0]} historical data points")
         else:
-            print("❌ Failed to train models")
+            print("[ERROR] Failed to train models")
             exit(1)
         
         # Generate sample forecast to verify everything works
-        print("\n🔮 Generating sample forecast...")
+        print("\n[FORECAST] Generating sample forecast...")
         sample_forecast = predictor.get_forecast_data()
         if sample_forecast['success']:
-            print("✅ Forecast generation successful!")
+            print("[OK] Forecast generation successful!")
             print(f"   Current Price: KES {sample_forecast['currentAvgPrice']}")
             print(f"   7-Day Trend: {sample_forecast['priceTrend'].upper()}")
             print(f"   Expected Change: {sample_forecast['analysis']['price_change_percent']}%")
         
         print("\n" + "="*60)
-        print("🟢 ML Service is ready!")
+        print("[READY] ML Service is ready!")
         print("   Listening on: http://0.0.0.0:5000")
         print("   Endpoints:")
         print("   - GET  /health         - Service status")
@@ -381,7 +381,7 @@ if __name__ == '__main__':
         print("="*60 + "\n")
         
     except Exception as e:
-        print(f"❌ Initialization failed: {str(e)}")
+        print(f"[ERROR] Initialization failed: {str(e)}")
         import traceback
         traceback.print_exc()
         exit(1)
