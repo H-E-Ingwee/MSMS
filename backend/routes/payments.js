@@ -35,7 +35,7 @@ router.post('/intasend/callback', express.json(), async (req, res) => {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        listing: { select: { farmerId: true, grade: true, quantity: true, title: true } },
+        listing: { select: { farmerId: true, grade: true, quantity: true, description: true } },
         buyer: { select: { id: true, name: true } },
       },
     });
@@ -284,7 +284,7 @@ router.post('/order/:orderId', authenticateToken, [
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        listing: { select: { farmerId: true, grade: true, quantity: true, title: true } },
+        listing: { select: { farmerId: true, grade: true, quantity: true, description: true } },
         buyer: { select: { id: true, name: true } },
       },
     });
@@ -326,7 +326,7 @@ router.post('/order/:orderId', authenticateToken, [
         userId: req.user.id,
         amount: order.totalPrice,
         type: 'DEBIT',
-        description: `M-Pesa payment for ${order.quantity}kg ${order.listing.grade} from ${order.listing.title}`,
+        description: `M-Pesa payment for ${order.quantity}kg ${order.listing.grade} from ${order.listing.description || 'Miraa'}`,
         status: 'PENDING',
         reference: `ORDER_${orderId}_MPESA_${Date.now()}`,
         metadata: {

@@ -99,6 +99,7 @@ router.post('/deposit', [
 
     try {
       // Initiate M-Pesa STK Push for wallet deposit
+      console.log('Initiating M-Pesa STK Push with:', { phoneNumber, amount, orderId: `WALLET_${user.id}_${transaction.id}` });
       const stkPushResult = await initiateSTKPush({
         phoneNumber,
         amount,
@@ -106,6 +107,8 @@ router.post('/deposit', [
         accountReference: `MSMS_Wallet_Deposit`,
         transactionDescription: `Wallet deposit for MSMS account`,
       });
+
+      console.log('M-Pesa STK Push initiated successfully:', stkPushResult);
 
       // Update transaction with checkout request ID
       await prisma.walletTransaction.update({
@@ -146,7 +149,6 @@ router.post('/deposit', [
       transactionId: transaction?.id,
     });
   }
-});
 });
 
 // Withdraw money from wallet (debit)
