@@ -18,7 +18,7 @@ export default function LandingPage() {
             </div>
             <div className="flex gap-3">
               <Link to="/login">
-                <PrimaryButton className="bg-white text-green-600 border border-green-600 hover:bg-green-50">Login</PrimaryButton>
+                <PrimaryButton className="bg-green-600 text-white border border-green-600 hover:bg-green-50">Login</PrimaryButton>
               </Link>
               <Link to="/register">
                 <PrimaryButton className="bg-green-600 text-white hover:bg-green-700">Register</PrimaryButton>
