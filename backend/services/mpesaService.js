@@ -24,11 +24,14 @@ console.log('✅ IntaSend Config loaded:', {
 });
 
 // Initialize IntaSend
-const getIntaSendHeaders = () => ({
-  'Authorization': `Bearer ${INTASEND_CONFIG.SECRET_KEY}`,
-  'Content-Type': 'application/json',
-  'X-IntaSend-Public-Key': INTASEND_CONFIG.PUBLISHABLE_KEY,
-});
+const getIntaSendHeaders = () => {
+  // IntaSend uses Basic Auth with public and secret keys
+  const credentials = Buffer.from(`${INTASEND_CONFIG.PUBLISHABLE_KEY}:${INTASEND_CONFIG.SECRET_KEY}`).toString('base64');
+  return {
+    'Authorization': `Basic ${credentials}`,
+    'Content-Type': 'application/json',
+  };
+};
 
 // Validate and format phone number for M-Pesa
 export const validatePhoneNumber = (phone) => {
