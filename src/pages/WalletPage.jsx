@@ -1,19 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, AlertCircle } from 'lucide-react';
 import SectionHeading from '../components/atoms/SectionHeading';
-import { depositWallet, getWalletData, withdrawWallet } from '../services/api';
+import { depositWallet, getWalletData, withdrawWallet, getCurrentUser } from '../services/api';
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState({ balance: 0, transactions: [] });
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [depositModal, setDepositModal] = useState(false);
   const [withdrawModal, setWithdrawModal] = useState(false);
   const [amount, setAmount] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     loadWalletData();
+    loadUserData();
   }, []);
+
+  const loadUserData = async () => {
+    try {
+      const userData = await getCurrentUser();
+      setUser(userData);
+      setPhoneNumber(userData.phone || '');
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    }
+  };
 
   const loadWalletData = async () => {
     try {
@@ -32,16 +45,22 @@ export default function WalletPage() {
       return;
     }
 
+    if (!phoneNumber) {
+      alert('Please enter your M-Pesa phone number');
+      return;
+    }
+
     setProcessing(true);
     try {
-      await depositWallet(parseFloat(amount), 'MPESA');
-      alert('Deposit initiated successfully! Check your phone for M-Pesa prompt.');
+      const response = await depositWallet(parseFloat(amount), 'MPESA', phoneNumber);
+      alert(`${response.message}\n\nTransaction ID: ${response.transactionId}\n\nPlease check your phone for the M-Pesa prompt from Safaricom.`);
       setDepositModal(false);
       setAmount('');
+      setPhoneNumber('');
       loadWalletData();
     } catch (error) {
       console.error('Deposit error:', error);
-      alert('Deposit failed. Please try again.');
+      alert(`Deposit failed: ${error.message}`);
     } finally {
       setProcessing(false);
     }
@@ -108,22 +127,28 @@ export default function WalletPage() {
           <p>Loading transactions...</p>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-50">
-            {wallet.transactions.map(tx => (
-              <div key={tx.id} className="flex justify-between items-center p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${tx.type === 'in' ? 'bg-emerald-100 text-emerald-600' : tx.type === 'out' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
-                    {tx.type === 'in' ? <TrendingUp size={16} /> : tx.type === 'out' ? <TrendingUp size={16} className="rotate-180" /> : <AlertCircle size={16} />}
+            {wallet.transactions && wallet.transactions.length > 0 ? (
+              wallet.transactions.map(tx => (
+                <div key={tx.id} className="flex justify-between items-center p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-full ${tx.type === 'CREDIT' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                      {tx.type === 'CREDIT' ? <TrendingUp size={16} /> : <TrendingUp size={16} className="rotate-180" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{tx.description}</p>
+                      <p className="text-xs text-gray-500">{new Date(tx.createdAt).toLocaleDateString()} • {tx.status}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{tx.title}</p>
-                    <p className="text-xs text-gray-500">{tx.date}</p>
-                  </div>
+                  <p className={`text-sm font-bold ${tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {tx.type === 'CREDIT' ? '+' : '-'}KES {Math.abs(tx.amount).toLocaleString()}
+                  </p>
                 </div>
-                <p className={`text-sm font-bold ${tx.type === 'in' ? 'text-emerald-600' : tx.type === 'out' ? 'text-gray-800' : 'text-orange-500'}`}>
-                  {tx.type === 'in' ? '+' : tx.type === 'out' ? '-' : ''}KES {Math.abs(tx.amount).toLocaleString()}
-                </p>
+              ))
+            ) : (
+              <div className="p-4 text-center text-gray-500">
+                <p className="text-sm">No transactions yet</p>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
@@ -135,21 +160,36 @@ export default function WalletPage() {
             <h3 className="text-lg font-bold text-gray-800 mb-4">Deposit Money</h3>
             <div className="space-y-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">M-Pesa Phone Number</label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="07XX XXX XXX or +254..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Your M-Pesa registered number</p>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Amount (KES)</label>
                 <input
                   type="number"
                   min="10"
-                  max="10000"
+                  max="50000"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="Enter amount"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
-                <p className="text-xs text-gray-500 mt-1">Minimum: KES 10, Maximum: KES 10,000</p>
+                <p className="text-xs text-gray-500 mt-1">Minimum: KES 10, Maximum: KES 50,000</p>
               </div>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setDepositModal(false)}
+                  onClick={() => {
+                    setDepositModal(false);
+                    setAmount('');
+                    setPhoneNumber('');
+                  }}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   Cancel

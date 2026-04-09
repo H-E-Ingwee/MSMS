@@ -87,10 +87,10 @@ export const getWalletData = async () => {
   return response;
 };
 
-export const depositWallet = async (amount, paymentMethod = 'MPESA') => {
+export const depositWallet = async (amount, paymentMethod = 'MPESA', phoneNumber) => {
   return await apiCall('/wallet/deposit', {
     method: 'POST',
-    body: JSON.stringify({ amount, paymentMethod }),
+    body: JSON.stringify({ amount, paymentMethod, phoneNumber }),
   });
 };
 

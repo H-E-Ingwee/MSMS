@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
+import { initiateSTKPush, validatePhoneNumber } from '../services/mpesaService.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -32,8 +33,14 @@ router.get('/', authenticateToken, async (req, res) => {
       },
     });
 
-    // Calculate balance
-    const balance = transactions.reduce((acc, transaction) => {
+    // Calculate balance from ALL transactions (not just current page)
+    const allTransactions = await prisma.walletTransaction.findMany({
+      where: {
+        userId: req.user.id,
+      },
+    });
+
+    const balance = allTransactions.reduce((acc, transaction) => {
       return transaction.type === 'CREDIT' ? acc + transaction.amount : acc - transaction.amount;
     }, 0);
 
@@ -59,8 +66,9 @@ router.get('/', authenticateToken, async (req, res) => {
 // Add money to wallet (credit)
 router.post('/deposit', [
   authenticateToken,
-  body('amount').isFloat({ min: 10, max: 10000 }).withMessage('Amount must be between 10 and 10000 KES'),
+  body('amount').isFloat({ min: 10, max: 50000 }).withMessage('Amount must be between 10 and 50000 KES'),
   body('paymentMethod').isIn(['MPESA', 'CARD']).withMessage('Invalid payment method'),
+  body('phoneNumber').isMobilePhone('any').withMessage('Valid phone number required'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -72,7 +80,10 @@ router.post('/deposit', [
       });
     }
 
-    const { amount, paymentMethod } = req.body;
+    const { amount, paymentMethod, phoneNumber } = req.body;
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
 
     // Create transaction record
     const transaction = await prisma.walletTransaction.create({
@@ -85,20 +96,47 @@ router.post('/deposit', [
       },
     });
 
-    // In a real implementation, this would initiate payment processing
-    // For now, we'll simulate successful payment
-    await prisma.walletTransaction.update({
-      where: { id: transaction.id },
-      data: { status: 'COMPLETED' },
-    });
+    try {
+      // Initiate M-Pesa STK Push for wallet deposit
+      const stkPushResult = await initiateSTKPush({
+        phoneNumber,
+        amount,
+        orderId: `WALLET_${user.id}_${transaction.id}`,
+        accountReference: `MSMS_Wallet_Deposit`,
+        transactionDescription: `Wallet deposit for MSMS account`,
+      });
 
-    res.status(201).json({
-      message: 'Deposit initiated successfully',
-      transaction: {
-        ...transaction,
-        status: 'COMPLETED',
-      },
-    });
+      // Update transaction with checkout request ID
+      await prisma.walletTransaction.update({
+        where: { id: transaction.id },
+        data: {
+          reference: stkPushResult.checkoutRequestId,
+          metadata: {
+            checkoutRequestId: stkPushResult.checkoutRequestId,
+            trackingId: stkPushResult.trackingId,
+            phoneNumber,
+          },
+        },
+      });
+
+      res.status(201).json({
+        success: true,
+        message: stkPushResult.customerMessage,
+        checkoutRequestId: stkPushResult.checkoutRequestId,
+        transactionId: transaction.id,
+        trackingId: stkPushResult.trackingId,
+      });
+    } catch (mpesaError) {
+      // If M-Pesa initiation fails, mark transaction as failed
+      await prisma.walletTransaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: 'FAILED',
+          description: `${transaction.description} - M-Pesa initiation failed: ${mpesaError.message}`,
+        },
+      });
+      throw mpesaError;
+    }
   } catch (error) {
     console.error('Deposit error:', error);
     res.status(500).json({
