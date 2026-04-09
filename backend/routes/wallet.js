@@ -70,6 +70,7 @@ router.post('/deposit', [
   body('paymentMethod').isIn(['MPESA', 'CARD']).withMessage('Invalid payment method'),
   body('phoneNumber').isMobilePhone('any').withMessage('Valid phone number required'),
 ], async (req, res) => {
+  let transaction = null;
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -86,7 +87,7 @@ router.post('/deposit', [
     });
 
     // Create transaction record
-    const transaction = await prisma.walletTransaction.create({
+    transaction = await prisma.walletTransaction.create({
       data: {
         userId: req.user.id,
         amount,
@@ -141,9 +142,11 @@ router.post('/deposit', [
     console.error('Deposit error:', error);
     res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to process deposit',
+      message: error.message || 'Failed to process deposit',
+      transactionId: transaction?.id,
     });
   }
+});
 });
 
 // Withdraw money from wallet (debit)

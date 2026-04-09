@@ -53,14 +53,16 @@ export default function WalletPage() {
     setProcessing(true);
     try {
       const response = await depositWallet(parseFloat(amount), 'MPESA', phoneNumber);
-      alert(`${response.message}\n\nTransaction ID: ${response.transactionId}\n\nPlease check your phone for the M-Pesa prompt from Safaricom.`);
+      const txId = response.transactionId ? `\n\nTransaction ID: ${response.transactionId}` : '';
+      alert(`${response.message}${txId}\n\nPlease check your phone for the M-Pesa prompt from Safaricom.`);
       setDepositModal(false);
       setAmount('');
       setPhoneNumber('');
       loadWalletData();
     } catch (error) {
       console.error('Deposit error:', error);
-      alert(`Deposit failed: ${error.message}`);
+      const txId = error.response?.data?.transactionId ? `\n\nTransaction ID: ${error.response.data.transactionId}` : '';
+      alert(`Deposit failed: ${error.message || error.response?.data?.message || 'Please try again.'}${txId}`);
     } finally {
       setProcessing(false);
     }

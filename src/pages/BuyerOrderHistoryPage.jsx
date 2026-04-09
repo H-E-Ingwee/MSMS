@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Package, Star, MessageCircle, Calendar, DollarSign, Truck, CheckCircle, Clock } from 'lucide-react';
 import SectionHeading from '../components/atoms/SectionHeading';
 import PrimaryButton from '../components/atoms/PrimaryButton';
-import { getBuyerOrders, submitReview } from '../services/api';
+import { getBuyerOrders, submitReview, processMpesaPayment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function BuyerOrderHistoryPage() {
@@ -17,6 +17,7 @@ export default function BuyerOrderHistoryPage() {
     orderId: null
   });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -36,6 +37,8 @@ export default function BuyerOrderHistoryPage() {
 
   const getStatusIcon = (status) => {
     switch (status) {
+      case 'APPROVED':
+        return <CheckCircle className="w-5 h-5 text-blue-500" />;
       case 'DELIVERED':
         return <CheckCircle className="w-5 h-5 text-emerald-500" />;
       case 'SHIPPED':
@@ -51,6 +54,8 @@ export default function BuyerOrderHistoryPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'APPROVED':
+        return 'text-blue-600 bg-blue-50';
       case 'DELIVERED':
         return 'text-emerald-600 bg-emerald-50';
       case 'SHIPPED':
@@ -105,6 +110,46 @@ export default function BuyerOrderHistoryPage() {
     });
   };
 
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return null;
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10 && digits.startsWith('0')) {
+      return `254${digits.slice(1)}`;
+    }
+    if (digits.length === 12 && digits.startsWith('254')) {
+      return digits;
+    }
+    if (digits.length === 13 && digits.startsWith('254')) {
+      return digits.slice(1);
+    }
+    return digits;
+  };
+
+  const handlePayOrder = async (order) => {
+    if (!user?.phone) {
+      alert('Please add your phone number to your profile before making a payment.');
+      return;
+    }
+
+    const formattedPhone = formatPhoneNumber(user.phone);
+    if (!formattedPhone) {
+      alert('Unable to format your phone number for M-Pesa. Please check your profile details.');
+      return;
+    }
+
+    setProcessingPayment(true);
+    try {
+      const paymentData = await processMpesaPayment(order.id, formattedPhone, order.totalPrice);
+      alert(paymentData?.message || `Payment initiated! Check your phone for the M-Pesa prompt. Total: KES ${order.totalPrice}`);
+      loadOrders(); // Refresh orders
+    } catch (error) {
+      console.error('Payment failed:', error);
+      alert(`Payment failed: ${error.message || 'Please try again.'}`);
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -126,7 +171,7 @@ export default function BuyerOrderHistoryPage() {
         {/* Filter Tabs */}
         <div className="mb-6">
           <div className="flex space-x-1 bg-white p-1 rounded-lg shadow-sm">
-            {['ALL', 'DELIVERED', 'SHIPPED', 'PAID', 'CANCELLED'].map((status) => (
+            {['ALL', 'APPROVED', 'DELIVERED', 'SHIPPED', 'PAID', 'CANCELLED'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
@@ -228,6 +273,15 @@ export default function BuyerOrderHistoryPage() {
                   </div>
 
                   <div className="flex flex-col space-y-2">
+                    {order.status === 'APPROVED' && (
+                      <PrimaryButton
+                        onClick={() => handlePayOrder(order)}
+                        disabled={processingPayment}
+                        className="text-sm px-4 py-2"
+                      >
+                        {processingPayment ? 'Processing...' : 'Pay Now with M-Pesa'}
+                      </PrimaryButton>
+                    )}
                     {order.status === 'DELIVERED' && !order.review && (
                       <PrimaryButton
                         onClick={() => openReviewModal(order)}
