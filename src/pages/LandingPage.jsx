@@ -43,7 +43,7 @@ export default function LandingPage() {
               <PrimaryButton className="bg-green-600 text-white hover:bg-green-700 px-8 py-3 text-lg">Get Started</PrimaryButton>
             </Link>
             <Link to="/login">
-              <PrimaryButton className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 px-8 py-3 text-lg">Sign In</PrimaryButton>
+              <PrimaryButton className="bg-green-600 text-white border border-green-600 hover:bg-green-50 px-8 py-3 text-lg">Sign In</PrimaryButton>
             </Link>
           </div>
 
