@@ -4,15 +4,21 @@
 import axios from 'axios';
 
 // IntaSend Configuration
+if (!process.env.INTASEND_PUBLISHABLE_KEY || !process.env.INTASEND_SECRET_KEY) {
+  console.error('❌ ERROR: IntaSend credentials not configured in .env file!');
+  console.error('   Please add INTASEND_PUBLISHABLE_KEY and INTASEND_SECRET_KEY to backend/.env');
+  throw new Error('IntaSend credentials missing - application cannot start');
+}
+
 const INTASEND_CONFIG = {
-  PUBLISHABLE_KEY: process.env.INTASEND_PUBLISHABLE_KEY || 'ISPubKey_test_620da1ea-5e59-4597-9308-02e9ec9a2f6d',
-  SECRET_KEY: process.env.INTASEND_SECRET_KEY || 'ISSecretKey_test_1234567890123456789012345678901234567890',
+  PUBLISHABLE_KEY: process.env.INTASEND_PUBLISHABLE_KEY,
+  SECRET_KEY: process.env.INTASEND_SECRET_KEY,
   TEST_MODE: process.env.NODE_ENV !== 'production',
 };
 
-console.log('IntaSend Config loaded:', {
-  hasPublishableKey: !!process.env.INTASEND_PUBLISHABLE_KEY,
-  hasSecretKey: !!process.env.INTASEND_SECRET_KEY,
+console.log('✅ IntaSend Config loaded:', {
+  hasPublishableKey: !!INTASEND_CONFIG.PUBLISHABLE_KEY,
+  hasSecretKey: !!INTASEND_CONFIG.SECRET_KEY,
   testMode: INTASEND_CONFIG.TEST_MODE,
   publicKeyPrefix: INTASEND_CONFIG.PUBLISHABLE_KEY.substring(0, 20) + '...',
 });
