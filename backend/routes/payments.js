@@ -390,7 +390,54 @@ router.get('/config', (req, res) => {
       ? 'IntaSend is properly configured'
       : 'IntaSend credentials not configured. Set INTASEND_PUBLISHABLE_KEY and INTASEND_SECRET_KEY environment variables.',
     setupLink: 'https://intasend.com/',
+    keyDetails: {
+      hasPublishableKey: !!process.env.INTASEND_PUBLISHABLE_KEY,
+      hasSecretKey: !!process.env.INTASEND_SECRET_KEY,
+      publishableKeyPrefix: process.env.INTASEND_PUBLISHABLE_KEY?.substring(0, 30) + '...',
+    },
   });
+});
+
+// Test endpoint to verify IntaSend connection
+router.post('/test', authenticateToken, async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    
+    if (!phoneNumber) {
+      return res.status(400).json({
+        error: 'Phone number required',
+        message: 'Please provide a valid Kenyan phone number to test'
+      });
+    }
+
+    console.log('🧪 Testing IntaSend connection with phone:', phoneNumber);
+
+    const stkPushResult = await initiateSTKPush({
+      phoneNumber,
+      amount: 1, // Test with 1 KES
+      orderId: 'TEST_' + Date.now(),
+      accountReference: 'MSMS_Test',
+      transactionDescription: 'MSMS Test Payment',
+    });
+
+    res.json({
+      success: true,
+      message: '✅ IntaSend connection successful!',
+      result: stkPushResult,
+      nextStep: `Check your phone ${phoneNumber} for an M-Pesa prompt. You have 40 seconds to respond.`,
+    });
+  } catch (error) {
+    console.error('❌ IntaSend test failed:', error);
+    res.status(500).json({
+      error: 'IntaSend Connection Failed',
+      message: error.message,
+      troubleshoot: {
+        checkCredentials: 'Verify your INTASEND_PUBLISHABLE_KEY and INTASEND_SECRET_KEY in .env',
+        checkPhone: 'Ensure phone number is in format 0790123456 or 254790123456',
+        checkAPI: 'Visit https://sandbox.intasend.com/dashboard to verify your account',
+      }
+    });
+  }
 });
 
 export default router;

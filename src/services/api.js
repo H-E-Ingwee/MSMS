@@ -296,6 +296,13 @@ export const getMpesaConfig = async () => {
   return await apiCall('/payments/config');
 };
 
+export const testIntaSendConnection = async (phoneNumber) => {
+  return await apiCall('/payments/test', {
+    method: 'POST',
+    body: JSON.stringify({ phoneNumber }),
+  });
+};
+
 export const processMpesaPayment = async (orderId, phoneNumber, amount) => {
   return await apiCall(`/payments/order/${orderId}`, {
     method: 'POST',

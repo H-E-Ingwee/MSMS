@@ -10,6 +10,13 @@ const INTASEND_CONFIG = {
   TEST_MODE: process.env.NODE_ENV !== 'production',
 };
 
+console.log('IntaSend Config loaded:', {
+  hasPublishableKey: !!process.env.INTASEND_PUBLISHABLE_KEY,
+  hasSecretKey: !!process.env.INTASEND_SECRET_KEY,
+  testMode: INTASEND_CONFIG.TEST_MODE,
+  publicKeyPrefix: INTASEND_CONFIG.PUBLISHABLE_KEY.substring(0, 20) + '...',
+});
+
 // Initialize IntaSend
 const getIntaSendHeaders = () => ({
   'Authorization': `Bearer ${INTASEND_CONFIG.SECRET_KEY}`,
@@ -55,7 +62,13 @@ export const initiateSTKPush = async ({ phoneNumber, amount, orderId, accountRef
       narrative: transactionDescription,
     };
 
-    console.log('IntaSend STK Push payload:', payload);
+    console.log('IntaSend STK Push payload:', JSON.stringify(payload, null, 2));
+    console.log('IntaSend API URL:', 'https://api.intasend.com/api/v1/payment/collection/');
+    console.log('IntaSend Headers:', {
+      'Authorization': '***REDACTED***',
+      'Content-Type': 'application/json',
+      'X-IntaSend-Public-Key': INTASEND_CONFIG.PUBLISHABLE_KEY.substring(0, 20) + '...',
+    });
 
     const response = await axios.post(
       'https://api.intasend.com/api/v1/payment/collection/',
@@ -63,7 +76,7 @@ export const initiateSTKPush = async ({ phoneNumber, amount, orderId, accountRef
       { headers: getIntaSendHeaders() }
     );
 
-    console.log('IntaSend response:', response.data);
+    console.log('✅ IntaSend response successful:', response.data);
 
     if (response.data && response.data.id) {
       return {
@@ -72,11 +85,15 @@ export const initiateSTKPush = async ({ phoneNumber, amount, orderId, accountRef
         trackingId: response.data.tracking_id || response.data.id,
       };
     } else {
-      throw new Error('Invalid response from IntaSend');
+      console.error('❌ Invalid response from IntaSend - no ID returned:', response.data);
+      throw new Error('Invalid response from IntaSend - no transaction ID');
     }
   } catch (error) {
-    console.error('IntaSend STK Push error:', error.response?.data || error.message);
-    throw new Error(`M-Pesa payment initiation failed: ${error.response?.data?.message || error.message}`);
+    console.error('❌ IntaSend STK Push error:');
+    console.error('   Status:', error.response?.status);
+    console.error('   Data:', error.response?.data);
+    console.error('   Message:', error.message);
+    throw new Error(`M-Pesa payment initiation failed: ${error.response?.data?.message || error.response?.data?.detail || error.message}`);
   }
 };
 
