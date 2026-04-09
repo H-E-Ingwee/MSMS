@@ -79,8 +79,7 @@ export default function DashboardPage() {
 
   const demandChartData = aiData?.forecast?.map(item => ({
     day: item.day,
-    demand: item.demand,
-    predicted: item.predictedPrice
+    demand: item.demand || item.predictedDemand || 0
   })) || [];
 
   return (
