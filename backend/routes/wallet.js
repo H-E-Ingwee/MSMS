@@ -2,7 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
-import { initiateSTKPush, validatePhoneNumber } from '../services/mpesaService.js';
+import { initiateSTKPush, validatePhoneNumber, initiateB2CPayment } from '../services/daraja.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -117,18 +117,20 @@ router.post('/deposit', [
           reference: stkPushResult.checkoutRequestId,
           metadata: {
             checkoutRequestId: stkPushResult.checkoutRequestId,
-            trackingId: stkPushResult.trackingId,
+            merchantRequestId: stkPushResult.merchantRequestId,
             phoneNumber,
+            timestamp: stkPushResult.timestamp,
+            provider: 'daraja',
           },
         },
       });
 
       res.status(201).json({
         success: true,
-        message: stkPushResult.customerMessage,
+        message: stkPushResult.customerMessage || 'M-Pesa prompt sent to your phone',
         checkoutRequestId: stkPushResult.checkoutRequestId,
+        merchantRequestId: stkPushResult.merchantRequestId,
         transactionId: transaction.id,
-        trackingId: stkPushResult.trackingId,
       });
     } catch (mpesaError) {
       // If M-Pesa initiation fails, mark transaction as failed
@@ -156,6 +158,7 @@ router.post('/withdraw', [
   authenticateToken,
   body('amount').isFloat({ min: 50, max: 50000 }).withMessage('Amount must be between 50 and 50000 KES'),
 ], async (req, res) => {
+  let transaction = null;
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -168,13 +171,25 @@ router.post('/withdraw', [
 
     const { amount } = req.body;
 
+    // Get user phone number
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user?.phone) {
+      return res.status(400).json({
+        error: 'Phone Number Required',
+        message: 'Please update your phone number in your profile first',
+      });
+    }
+
     // Calculate current balance
     const transactions = await prisma.walletTransaction.findMany({
       where: { userId: req.user.id },
     });
 
-    const balance = transactions.reduce((acc, transaction) => {
-      return transaction.type === 'CREDIT' ? acc + transaction.amount : acc - transaction.amount;
+    const balance = transactions.reduce((acc, t) => {
+      return t.type === 'CREDIT' ? acc + t.amount : acc - t.amount;
     }, 0);
 
     if (balance < amount) {
@@ -185,35 +200,67 @@ router.post('/withdraw', [
     }
 
     // Create withdrawal transaction
-    const transaction = await prisma.walletTransaction.create({
+    transaction = await prisma.walletTransaction.create({
       data: {
         userId: req.user.id,
         amount,
         type: 'DEBIT',
-        description: 'Wallet withdrawal',
-        status: 'PENDING', // Will be updated when withdrawal is processed
+        description: 'Wallet withdrawal via M-Pesa',
+        status: 'PENDING',
       },
     });
 
-    // In a real implementation, this would initiate withdrawal processing
-    // For now, we'll simulate successful withdrawal
-    await prisma.walletTransaction.update({
-      where: { id: transaction.id },
-      data: { status: 'COMPLETED' },
-    });
+    try {
+      // Initiate M-Pesa B2C withdrawal
+      console.log('Initiating M-Pesa B2C withdrawal:', { phone: user.phone, amount });
+      const b2cResult = await initiateB2CPayment({
+        phoneNumber: user.phone,
+        amount,
+        commandId: 'BusinessPayment',
+        remarks: `MSMS Wallet Withdrawal - Ref: ${transaction.id}`,
+      });
 
-    res.status(201).json({
-      message: 'Withdrawal initiated successfully',
-      transaction: {
-        ...transaction,
-        status: 'COMPLETED',
-      },
-    });
+      console.log('M-Pesa B2C initiated successfully:', b2cResult);
+
+      // Update transaction with B2C details
+      await prisma.walletTransaction.update({
+        where: { id: transaction.id },
+        data: {
+          reference: b2cResult.conversationId,
+          status: 'PROCESSING',
+          metadata: {
+            conversationId: b2cResult.conversationId,
+            originatorConversationId: b2cResult.originatorConversationId,
+            phoneNumber: user.phone,
+            provider: 'daraja',
+          },
+        },
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Withdrawal initiated successfully. Funds will appear in your M-Pesa account shortly.',
+        transactionId: transaction.id,
+        conversationId: b2cResult.conversationId,
+        amount,
+      });
+    } catch (b2cError) {
+      // If B2C initiation fails, mark transaction as failed
+      await prisma.walletTransaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: 'FAILED',
+          description: `${transaction.description} - Withdrawal failed: ${b2cError.message}`,
+        },
+      });
+      throw b2cError;
+    }
   } catch (error) {
     console.error('Withdraw error:', error);
     res.status(500).json({
       error: 'Internal Server Error',
-      message: 'Failed to process withdrawal',
+      message: error.message || 'Failed to process withdrawal',
+      transactionId: transaction?.id,
     });
   }
 });

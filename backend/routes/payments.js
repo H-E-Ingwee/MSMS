@@ -4,261 +4,143 @@ import { authenticateToken } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 import {
   initiateSTKPush,
-  queryStkPushStatus,
+  querySTKPushStatus,
   validatePhoneNumber,
-  generateTransactionRef,
-} from '../services/mpesaService.js';
+  processMpesaCallback,
+} from '../services/daraja.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// IntaSend Webhook - Payment Callback Handler
-// This endpoint receives callbacks from IntaSend when payment is completed or fails
-router.post('/intasend/callback', express.json(), async (req, res) => {
+// Daraja M-Pesa Webhook - Payment Callback Handler
+// This endpoint receives callbacks from Safaricom's Daraja when payment is completed or fails
+router.post('/mpesa/callback', express.json(), async (req, res) => {
   try {
     const callbackData = req.body;
-    console.log('IntaSend Callback received:', callbackData);
+    console.log('📬 Daraja Callback received:', JSON.stringify(callbackData, null, 2));
 
-    // IntaSend callback structure
-    const { id, state, mpesa_receipt_number, amount, phone_number, api_ref } = callbackData;
+    // Parse Daraja callback
+    const callback = processMpesaCallback(callbackData);
+    console.log('✅ Parsed callback:', callback);
 
-    // Extract orderId from api_ref (format: MSMS_{orderId}_{timestamp})
-    const apiRefParts = api_ref?.split('_');
-    const orderId = apiRefParts?.[1];
+    // Extract orderId from account reference or metadata
+    // Format could be: MSMS_ORDER_123 or MSMS_WALLET
+    const accountRef = callback.accountReference || callbackData.Body?.stkCallback?.CallbackMetadata?.Item?.find(i => i.Name === 'AccountReference')?.Value;
 
-    if (!orderId) {
-      console.warn('Could not extract orderId from api_ref:', api_ref);
-      return res.status(400).json({ message: 'Invalid callback data - missing order ID' });
+    if (!accountRef) {
+      console.warn('No account reference in callback');
+      return res.status(200).json({ success: true }); // Return 200 to acknowledge receipt
     }
 
-    // Find the order
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        listing: { select: { farmerId: true, grade: true, quantity: true, description: true } },
-        buyer: { select: { id: true, name: true } },
-      },
-    });
+    // Determine if this is a wallet or order payment
+    const isWalletPayment = accountRef.includes('WALLET');
+    const orderId = accountRef.split('_')[2]; // Extract from MSMS_ORDER_123
 
-    if (!order) {
-      console.warn('Order not found for callback:', orderId);
-      return res.status(404).json({ message: 'Order not found' });
-    }
+    if (callback.success) {
+      // Payment succeeded
+      console.log('💰 Payment successful:', callback);
 
-    // Find the pending transaction
-    const transaction = await prisma.walletTransaction.findFirst({
-      where: {
-        userId: order.buyerId,
-        reference: id, // IntaSend transaction ID
-        status: 'PENDING',
-      },
-    });
+      if (isWalletPayment) {
+        // Update wallet transaction
+        const transaction = await prisma.walletTransaction.findFirst({
+          where: {
+            reference: callback.checkoutRequestId,
+          },
+        });
 
-    // Handle payment success
-    if (state === 'COMPLETE' && mpesa_receipt_number) {
-      try {
-        // Update transaction as completed
         if (transaction) {
           await prisma.walletTransaction.update({
             where: { id: transaction.id },
             data: {
               status: 'COMPLETED',
-              reference: mpesa_receipt_number,
               metadata: {
                 ...transaction.metadata,
-                mpesaReceiptNumber: mpesa_receipt_number,
-                transactionDate: new Date().toISOString(),
-                phoneNumber: phone_number,
+                mpesaReceiptNumber: callback.mpesaReceiptNumber,
+                transactionDate: callback.transactionDate,
+                resultCode: callback.resultCode,
               },
             },
           });
+          console.log('✅ Wallet transaction updated:', transaction.id);
         }
+      } else if (orderId) {
+        // Update order payment
+        const order = await prisma.order.findUnique({
+          where: { id: orderId },
+          include: {
+            buyer: { select: { id: true, name: true, phone: true } },
+          },
+        });
 
-        // Update order status to PAID
+        if (order) {
+          await prisma.order.update({
+            where: { id: orderId },
+            data: {
+              status: 'PAID',
+              metadata: {
+                ...order.metadata,
+                mpesaReceiptNumber: callback.mpesaReceiptNumber,
+                transactionDate: callback.transactionDate,
+              },
+            },
+          });
+
+          // Create wallet transaction for buyer
+          await prisma.walletTransaction.create({
+            data: {
+              userId: order.buyerId,
+              amount: order.totalPrice,
+              type: 'DEBIT',
+              reference: callback.mpesaReceiptNumber,
+              description: `Payment for order ${orderId}`,
+              status: 'COMPLETED',
+              metadata: {
+                orderId,
+                mpesaReceiptNumber: callback.mpesaReceiptNumber,
+              },
+            },
+          });
+
+          console.log('✅ Order updated to PAID:', orderId);
+        }
+      }
+    } else {
+      // Payment failed
+      console.warn('❌ Payment failed:', callback);
+
+      if (!isWalletPayment && orderId) {
         await prisma.order.update({
           where: { id: orderId },
           data: {
-            status: 'PAID',
-            paymentMethod: 'MPESA',
-            mpesaReceiptNumber: mpesa_receipt_number,
-            paidAt: new Date(),
-          },
-        });
-
-        // Credit farmer's wallet
-        const farmerCredit = await prisma.walletTransaction.create({
-          data: {
-            userId: order.listing.farmerId,
-            amount: order.totalPrice,
-            type: 'CREDIT',
-            description: `M-Pesa payment from ${order.buyer.name} for ${order.quantity}kg ${order.listing.grade}`,
-            status: 'COMPLETED',
-            reference: `ORDER_${orderId}_MPESA_${mpesa_receipt_number}`,
+            status: 'PAYMENT_FAILED',
             metadata: {
-              mpesaReceiptNumber: mpesa_receipt_number,
-              transactionDate: new Date().toISOString(),
-              phoneNumber: phone_number,
-            },
-          },
-        });
-
-        // Create notifications
-        await Promise.all([
-          // Notify farmer of payment
-          prisma.notification.create({
-            data: {
-              userId: order.listing.farmerId,
-              type: 'PAYMENT_RECEIVED',
-              title: 'Payment Received',
-              message: `M-Pesa payment of KES ${order.totalPrice.toLocaleString()} received for order from ${order.buyer.name}`,
-              orderId: orderId,
-            },
-          }),
-          // Notify buyer of successful payment
-          prisma.notification.create({
-            data: {
-              userId: order.buyerId,
-              type: 'PAYMENT_CONFIRMED',
-              title: 'Payment Successful',
-              message: `Your M-Pesa payment of KES ${order.totalPrice.toLocaleString()} has been confirmed. Receipt: ${mpesa_receipt_number}`,
-              orderId: orderId,
-            },
-          }),
-        ]);
-
-        console.log(`✅ Payment successful for order ${orderId}: ${mpesa_receipt_number}`);
-      } catch (processError) {
-        console.error('Error processing successful payment:', processError);
-      }
-    }
-    // Handle payment failure
-    else {
-      if (transaction) {
-        await prisma.walletTransaction.update({
-          where: { id: transaction.id },
-          data: {
-            status: 'FAILED',
-            description: `${transaction.description} - Failed: ${state}`,
-            metadata: {
-              ...transaction.metadata,
-              failureReason: state,
-              phoneNumber: phone_number,
+              ...callbackData.metadata,
+              failureReason: callback.resultDescription,
             },
           },
         });
       }
-
-      // Create failure notification
-      await prisma.notification.create({
-        data: {
-          userId: order.buyerId,
-          type: 'PAYMENT_FAILED',
-          title: 'Payment Failed',
-          message: `Your M-Pesa payment for order ${orderId} failed: ${state}. Please try again.`,
-          orderId: orderId,
-        },
-      });
-
-      console.log(`❌ Payment failed for order ${orderId}: ${state}`);
     }
 
-    // Return success to IntaSend
-    res.status(200).json({
-      status: 'received',
-      message: 'Callback processed successfully',
-    });
+    // Always return 200 OK to acknowledge receipt from Daraja
+    res.status(200).json({ success: true, message: 'Callback received' });
   } catch (error) {
-    console.error('IntaSend callback processing error:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to process callback',
-    });
+    console.error('❌ Callback error:', error);
+    // Return 200 to prevent Daraja from retrying
+    res.status(200).json({ success: false, message: 'Callback received but processing failed' });
   }
 });
 
-// Query IntaSend Payment Status
-router.get('/status/:transactionId', authenticateToken, async (req, res) => {
+// M-Pesa Query Transaction Status
+router.get('/mpesa/query/:checkoutRequestId', authenticateToken, async (req, res) => {
   try {
-    const { transactionId } = req.params;
+    const { checkoutRequestId } = req.params;
 
-    // Find the transaction in our database
-    const transaction = await prisma.walletTransaction.findUnique({
-      where: { id: transactionId },
-      include: {
-        user: { select: { id: true, name: true } },
-      },
-    });
-
-    if (!transaction) {
-      return res.status(404).json({ message: 'Transaction not found' });
-    }
-
-    // Check if user owns this transaction
-    if (transaction.userId !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-
-    // If transaction is already completed or failed, return current status
-    if (transaction.status !== 'PENDING') {
-      return res.json({
-        success: transaction.status === 'COMPLETED',
-        status: transaction.status,
-        statusDescription: transaction.status === 'COMPLETED' ? 'Payment completed successfully' : 'Payment failed',
-        transaction,
-      });
-    }
-
-    // Query IntaSend for status update
-    const checkoutRequestId = transaction.metadata?.checkoutRequestId;
-    if (!checkoutRequestId) {
-      return res.status(400).json({ message: 'No checkout request ID found' });
-    }
-
-    const status = await queryStkPushStatus(checkoutRequestId);
-
-    // Update transaction status based on IntaSend response
-    let updatedTransaction = transaction;
-    if (status.resultCode === '0') {
-      // Payment successful
-      updatedTransaction = await prisma.walletTransaction.update({
-        where: { id: transactionId },
-        data: {
-          status: 'COMPLETED',
-          reference: status.mpesaReceiptNumber || transaction.reference,
-          metadata: {
-            ...transaction.metadata,
-            mpesaReceiptNumber: status.mpesaReceiptNumber,
-            transactionDate: status.transactionDate,
-          },
-        },
-      });
-    } else if (status.resultCode !== '1') { // Not still pending
-      // Payment failed
-      updatedTransaction = await prisma.walletTransaction.update({
-        where: { id: transactionId },
-        data: {
-          status: 'FAILED',
-          description: `${transaction.description} - Failed: ${status.resultDesc}`,
-          metadata: {
-            ...transaction.metadata,
-            failureReason: status.resultDesc,
-          },
-        },
-      });
-    }
-
-    res.json({
-      success: status.resultCode === '0',
-      statusCode: status.resultCode,
-      statusDescription: status.resultDesc,
-      transaction: updatedTransaction,
-    });
+    const status = await querySTKPushStatus(checkoutRequestId);
+    return res.json(status);
   } catch (error) {
-    console.error('Query payment status error:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to query payment status',
-    });
+    console.error('Query error:', error);
+    res.status(500).json({ error: 'Failed to query transaction status' });
   }
 });
 
@@ -354,16 +236,16 @@ router.post('/order/:orderId', authenticateToken, [
         metadata: {
           ...transaction.metadata,
           checkoutRequestId: stkPushResult.checkoutRequestId,
-          trackingId: stkPushResult.trackingId,
+          merchantRequestId: stkPushResult.merchantRequestId,
         },
       },
     });
 
     res.json({
       success: true,
-      message: stkPushResult.customerMessage,
+      message: stkPushResult.customerMessage || 'M-Pesa prompt sent to your phone',
       checkoutRequestId: stkPushResult.checkoutRequestId,
-      trackingId: stkPushResult.trackingId,
+      merchantRequestId: stkPushResult.merchantRequestId,
       transactionId: transaction.id,
       orderId,
     });
@@ -377,28 +259,33 @@ router.post('/order/:orderId', authenticateToken, [
   }
 });
 
-// Get IntaSend Configuration Status (for debugging)
+// Get M-Pesa Daraja Configuration Status (for debugging)
 router.get('/config', (req, res) => {
-  const isConfigured = !!(process.env.INTASEND_PUBLISHABLE_KEY && process.env.INTASEND_SECRET_KEY);
+  const isConfigured = !!(
+    process.env.MPESA_CONSUMER_KEY &&
+    process.env.MPESA_CONSUMER_SECRET &&
+    process.env.MPESA_BUSINESS_SHORTCODE
+  );
 
   res.json({
     configured: isConfigured,
-    environment: process.env.NODE_ENV || 'development',
-    testMode: process.env.NODE_ENV !== 'production',
-    provider: 'IntaSend',
+    environment: process.env.MPESA_ENVIRONMENT || 'sandbox',
+    provider: 'M-Pesa Daraja',
+    businessShortcode: process.env.MPESA_BUSINESS_SHORTCODE,
     message: isConfigured
-      ? 'IntaSend is properly configured'
-      : 'IntaSend credentials not configured. Set INTASEND_PUBLISHABLE_KEY and INTASEND_SECRET_KEY environment variables.',
-    setupLink: 'https://intasend.com/',
+      ? 'M-Pesa Daraja is properly configured'
+      : 'M-Pesa Daraja credentials not configured. Set MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, and MPESA_BUSINESS_SHORTCODE environment variables.',
+    setupLink: 'https://developer.safaricom.co.ke/',
     keyDetails: {
-      hasPublishableKey: !!process.env.INTASEND_PUBLISHABLE_KEY,
-      hasSecretKey: !!process.env.INTASEND_SECRET_KEY,
-      publishableKeyPrefix: process.env.INTASEND_PUBLISHABLE_KEY?.substring(0, 30) + '...',
+      hasConsumerKey: !!process.env.MPESA_CONSUMER_KEY,
+      hasConsumerSecret: !!process.env.MPESA_CONSUMER_SECRET,
+      hasBusinessShortcode: !!process.env.MPESA_BUSINESS_SHORTCODE,
+      hasPasskey: !!process.env.MPESA_PASSKEY,
     },
   });
 });
 
-// Test endpoint to verify IntaSend connection
+// Test endpoint to verify M-Pesa Daraja connection
 router.post('/test', authenticateToken, async (req, res) => {
   try {
     const { phoneNumber } = req.body;
@@ -410,7 +297,7 @@ router.post('/test', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log('🧪 Testing IntaSend connection with phone:', phoneNumber);
+    console.log('🧪 Testing Daraja connection with phone:', phoneNumber);
 
     const stkPushResult = await initiateSTKPush({
       phoneNumber,
@@ -422,19 +309,19 @@ router.post('/test', authenticateToken, async (req, res) => {
 
     res.json({
       success: true,
-      message: '✅ IntaSend connection successful!',
+      message: '✅ M-Pesa Daraja connection successful!',
       result: stkPushResult,
       nextStep: `Check your phone ${phoneNumber} for an M-Pesa prompt. You have 40 seconds to respond.`,
     });
   } catch (error) {
-    console.error('❌ IntaSend test failed:', error);
+    console.error('❌ M-Pesa Daraja test failed:', error);
     res.status(500).json({
-      error: 'IntaSend Connection Failed',
+      error: 'M-Pesa Daraja Connection Failed',
       message: error.message,
       troubleshoot: {
-        checkCredentials: 'Verify your INTASEND_PUBLISHABLE_KEY and INTASEND_SECRET_KEY in .env',
+        checkCredentials: 'Verify your MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET in .env',
         checkPhone: 'Ensure phone number is in format 0790123456 or 254790123456',
-        checkAPI: 'Visit https://sandbox.intasend.com/dashboard to verify your account',
+        checkAPI: 'Visit https://developer.safaricom.co.ke/ to verify your credentials',
       }
     });
   }
